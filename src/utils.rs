@@ -27,7 +27,6 @@ pub fn strip_until_match(remove_until: String, input: &str) -> String {
         if stripped == remove_until {
             break;
         }
-        println!("{stripped}");
         stripped.push(c);
     }
     to_strip.chars().rev().collect()
