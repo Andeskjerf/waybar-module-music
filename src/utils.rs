@@ -17,14 +17,14 @@ pub fn strip_until_backwards(remove_until: char, input: &str) -> String {
     stripped.chars().rev().collect()
 }
 
-pub fn strip_until_match(remove_until: String, input: &str) -> String {
+pub fn strip_until_match(remove_until: &str, input: &str) -> String {
     let mut to_strip = String::new();
     input.clone_into(&mut to_strip);
     to_strip = to_strip.chars().rev().collect();
 
     let mut stripped = String::new();
     while let Some(c) = to_strip.pop() {
-        if stripped == remove_until {
+        if stripped.to_lowercase() == remove_until.to_lowercase() {
             break;
         }
         stripped.push(c);

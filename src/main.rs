@@ -16,11 +16,19 @@ fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Err
         .iter()
         .filter(|name| name.contains(BASE_INTERFACE))
         .fold(vec![], |mut a, elem| {
-            a.push(strip_until_match(BASE_INTERFACE.to_owned(), elem));
+            a.push(strip_until_match(BASE_INTERFACE, elem));
             a
         });
 
     Ok(players)
+}
+
+/// If the artist name is leading the title, we remove the artist from the title
+fn sanitize_title(title: &str, artist: &str) -> String {
+    if title.to_lowercase().contains(&artist.to_lowercase()) {
+        return strip_until_match(&format!("{} -", artist), title).to_owned();
+    }
+    title.to_owned()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -48,13 +56,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let active_player =
             active_player.expect("unable to get active_player despite it being Some?");
 
-        let title = match active_player.title() {
+        let artist = match active_player.artist() {
             Ok(t) => t,
             Err(_) => continue,
         };
 
-        let artist = match active_player.artist() {
-            Ok(t) => t,
+        let title = match active_player.title() {
+            Ok(t) => sanitize_title(&t, &artist),
             Err(_) => continue,
         };
 
