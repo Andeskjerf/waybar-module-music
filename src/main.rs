@@ -26,11 +26,45 @@ fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Err
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = Connection::new_session()?;
 
-    let players = get_players(&conn)?;
+    let players = get_players(&conn)?
+        .iter()
+        .map(|p| PlayerClient::new(&conn, p))
+        .collect::<Vec<PlayerClient>>();
 
-    for p in players {
-        let player = PlayerClient::new(&conn, &p);
-        println!("{:?}", player.get_all_properties());
+    let mut active_player: Option<&PlayerClient> = None;
+    const SLEEP_MS: u64 = 100;
+    loop {
+        std::thread::sleep(Duration::from_millis(SLEEP_MS));
+
+        for p in &players {
+            if p.playing()? {
+                active_player = Some(p);
+            }
+        }
+
+        if active_player.is_none() {
+            continue;
+        }
+        let active_player =
+            active_player.expect("unable to get active_player despite it being Some?");
+
+        let title = match active_player.title() {
+            Ok(t) => t,
+            Err(_) => continue,
+        };
+
+        let artist = match active_player.artist() {
+            Ok(t) => t,
+            Err(_) => continue,
+        };
+
+        println!("\n\n-----");
+        println!("player: {}", active_player.name());
+        println!("artist: {:?}", artist);
+        println!("title: {:?}", title);
+
+        println!("\n");
+        println!("{:?}", active_player.get_all_properties()?);
     }
 
     Ok(())
