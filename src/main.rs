@@ -33,8 +33,8 @@ fn sanitize_title(title: &str, artist: &str) -> String {
 
 fn print(player: &PlayerClient) -> Result<(), Box<dyn Error>> {
     let icon = match player.playing()? {
-        true => "",
-        false => "",
+        true => "",
+        false => "",
     };
 
     let artist = match player.artist() {
@@ -54,6 +54,10 @@ fn print(player: &PlayerClient) -> Result<(), Box<dyn Error>> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = Connection::new_session()?;
 
+    // TODO: arg handling
+    // TODO: events, like sending signal to play/pause active player
+    // TODO: logging
+
     // TODO: thread to monitor players being opened or exited
     let players = get_players(&conn)?
         .iter()
@@ -65,6 +69,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         std::thread::sleep(Duration::from_millis(SLEEP_MS));
 
+        // TODO: smarter check for last playing?
+        // currently, the positioning of elements in the vec is static
+        // so certain players will always take priority for printing if played at the same time
         for p in &players {
             if p.playing()? {
                 active_player = Some(p);
