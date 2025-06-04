@@ -24,11 +24,11 @@ fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Err
 }
 
 /// If the artist name is leading the title, we remove the artist from the title
-fn sanitize_title(title: &str, artist: &str) -> String {
+fn sanitize_title(title: String, artist: &str) -> String {
     if title.to_lowercase().contains(&artist.to_lowercase()) {
-        return strip_until_match(&format!("{} -", artist), title).to_owned();
+        return strip_until_match(&format!("{} -", artist), &title).to_owned();
     }
-    title.to_owned()
+    title
 }
 
 fn print(player: &PlayerClient) -> Result<(), Box<dyn Error>> {
@@ -43,7 +43,7 @@ fn print(player: &PlayerClient) -> Result<(), Box<dyn Error>> {
     };
 
     let title = match player.title() {
-        Ok(t) => sanitize_title(&t, &artist),
+        Ok(t) => sanitize_title(t, &artist),
         Err(err) => return Err(format!("unable to get title, err == {err}").into()),
     };
 
