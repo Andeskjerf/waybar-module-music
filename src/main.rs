@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{error::Error, time::Duration};
 
 use dbus::blocking::Connection;
 use player_client::{PlayerClient, BASE_INTERFACE};
@@ -31,9 +31,30 @@ fn sanitize_title(title: &str, artist: &str) -> String {
     title.to_owned()
 }
 
+fn print(player: &PlayerClient) -> Result<(), Box<dyn Error>> {
+    let icon = match player.playing()? {
+        true => "",
+        false => "",
+    };
+
+    let artist = match player.artist() {
+        Ok(t) => t,
+        Err(err) => return Err(format!("unable to get artist, err == {err}").into()),
+    };
+
+    let title = match player.title() {
+        Ok(t) => sanitize_title(&t, &artist),
+        Err(err) => return Err(format!("unable to get title, err == {err}").into()),
+    };
+
+    println!("[ {icon} ] {} - {}", artist, title);
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = Connection::new_session()?;
 
+    // TODO: thread to monitor players being opened or exited
     let players = get_players(&conn)?
         .iter()
         .map(|p| PlayerClient::new(&conn, p))
@@ -56,32 +77,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let active_player =
             active_player.expect("unable to get active_player despite it being Some?");
 
-        let artist = match active_player.artist() {
-            Ok(t) => t,
-            Err(_) => continue,
-        };
-
-        let title = match active_player.title() {
-            Ok(t) => sanitize_title(&t, &artist),
-            Err(_) => continue,
-        };
-
-        println!("\n\n-----");
-        println!("player: {}", active_player.name());
-        println!("artist: {:?}", artist);
-        println!("title: {:?}", title);
-
-        println!("\n");
-        println!("{:?}", active_player.get_all_properties()?);
+        // TODO: add character limit for printing
+        // consider making it act like marquee
+        print(active_player).expect("failed to print");
     }
-
-    Ok(())
 }
-
-//  [-------          ]
-// [  ] Justice - Randy
-
-// :1.27 | 1765 feishin | _ | :1.27 | session-3.scope | 3 | -
-// :1.42 | 1765 feishin | _ | :1.42 | session-3.scope | 3 | -
-
-// org.mpris.MediaPlayer2.Feishin
