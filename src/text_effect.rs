@@ -11,10 +11,10 @@ pub struct TextEffect {
 }
 
 impl TextEffect {
-    pub fn new(content: &str, run_every_ms: u32) -> Self {
+    pub fn new(run_every_ms: u32) -> Self {
         Self {
-            content: content.to_owned(),
-            last_drawn: content.to_owned(),
+            content: String::new(),
+            last_drawn: String::new(),
             effects: vec![],
             time: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -31,6 +31,9 @@ impl TextEffect {
 
     pub fn set_content(&mut self, content: &str) {
         self.content = String::from(content);
+        if self.last_drawn.is_empty() {
+            self.last_drawn = self.content.clone();
+        }
     }
 
     pub fn draw(&mut self, now: u128) -> String {
