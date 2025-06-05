@@ -32,7 +32,10 @@ fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Err
 
 /// If the artist name is leading the title, we remove the artist from the title
 fn sanitize_title(title: String, artist: &str) -> String {
-    if title.to_lowercase().contains(&artist.to_lowercase()) {
+    if title
+        .to_lowercase()
+        .contains(&format!("{} -", &artist.to_lowercase()))
+    {
         return strip_until_match(&format!("{} -", artist), &title).to_owned();
     }
     title
