@@ -1,7 +1,4 @@
-use std::{
-    error::Error,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::{error::Error, time::Duration};
 
 use dbus::blocking::Connection;
 use effects::marquee::Marquee;
