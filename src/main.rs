@@ -38,7 +38,7 @@ fn sanitize_title(title: String, artist: &str) -> String {
     title
 }
 
-fn print(player: &PlayerClient, title_effect: &mut TextEffect) -> Result<(), Box<dyn Error>> {
+fn print(player: &PlayerClient, marquee: &mut TextEffect) -> Result<(), Box<dyn Error>> {
     let icon = match player.playing()? {
         true => "",
         false => "",
@@ -54,12 +54,10 @@ fn print(player: &PlayerClient, title_effect: &mut TextEffect) -> Result<(), Box
         Err(err) => return Err(format!("unable to get title, err == {err}").into()),
     };
 
-    title_effect.set_content(&title);
-
     let formatted = if title.is_empty() && artist.is_empty() {
         "No data".to_owned()
     } else {
-        format!("{} - {}", artist, title_effect.draw())
+        format!("{} - {}", artist, marquee.draw(&title))
     };
 
     println!("[ {icon} ] {formatted}",);
@@ -69,7 +67,7 @@ fn print(player: &PlayerClient, title_effect: &mut TextEffect) -> Result<(), Box
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = Connection::new_session()?;
 
-    // TODO: arg handling
+    // TODO: arg handling with clap
     // TODO: events, like sending signal to play/pause active player
     // TODO: logging
 
@@ -83,8 +81,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // we need to hold onto when the effect was previously run, so we can time it
     // easy and maybe hacky solution for now is to simply lift state up here
     let max_width = 20;
-    let mut title_effect =
-        TextEffect::new(150).with_effect(Box::new(Marquee::new(max_width, true)));
+    let apply_effects_ms = 200;
+    let mut marquee =
+        TextEffect::new(apply_effects_ms).with_effect(Box::new(Marquee::new(max_width, true)));
 
     let mut active_player: Option<&PlayerClient> = None;
     const SLEEP_MS: u64 = 100;
@@ -108,6 +107,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // TODO: add character limit for printing
         // consider making it act like marquee
-        print(active_player, &mut title_effect).expect("failed to print");
+        print(active_player, &mut marquee).expect("failed to print");
     }
 }
