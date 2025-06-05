@@ -88,7 +88,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // hmmm... maybe hacky?
     // we need to hold onto when the effect was previously run, so we can time it
     // easy and maybe hacky solution for now is to simply lift state up here
-    let mut title_effect = TextEffect::new("", 150).with_effect(Box::new(Marquee::new(50)));
+    let max_width = 20;
+    let mut title_effect =
+        TextEffect::new(150).with_effect(Box::new(Marquee::new(max_width, true)));
 
     let mut active_player: Option<&PlayerClient> = None;
     const SLEEP_MS: u64 = 100;
