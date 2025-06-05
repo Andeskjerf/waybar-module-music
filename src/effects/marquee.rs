@@ -23,6 +23,8 @@ impl Effect for Marquee {
             return text;
         }
 
+        let mut text = text.clone();
+        text.push_str(&" ".repeat(5));
         let mut result = String::new();
         for i in self.current_pos..self.current_pos + text.len() as u16 {
             let index = i % text.len() as u16;
