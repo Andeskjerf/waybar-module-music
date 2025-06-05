@@ -1,10 +1,17 @@
-use std::{error::Error, time::Duration};
+use std::{
+    error::Error,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use dbus::blocking::Connection;
+use effects::marquee::Marquee;
 use player_client::{PlayerClient, BASE_INTERFACE};
+use text_effect::TextEffect;
 use utils::strip_until_match;
 
+mod effects;
 mod player_client;
+mod text_effect;
 mod utils;
 
 fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Error>> {
@@ -31,7 +38,7 @@ fn sanitize_title(title: String, artist: &str) -> String {
     title
 }
 
-fn print(player: &PlayerClient) -> Result<(), Box<dyn Error>> {
+fn print(player: &PlayerClient, title_effect: &mut TextEffect) -> Result<(), Box<dyn Error>> {
     let icon = match player.playing()? {
         true => "",
         false => "",
@@ -47,7 +54,20 @@ fn print(player: &PlayerClient) -> Result<(), Box<dyn Error>> {
         Err(err) => return Err(format!("unable to get title, err == {err}").into()),
     };
 
-    println!("[ {icon} ] {} - {}", artist, title);
+    println!("TITLE {title}");
+
+    title_effect.set_content(&title);
+
+    println!(
+        "[ {icon} ] {} - {}",
+        artist,
+        title_effect.draw(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis()
+        )
+    );
     Ok(())
 }
 
@@ -63,6 +83,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .map(|p| PlayerClient::new(&conn, p))
         .collect::<Vec<PlayerClient>>();
+
+    // hmmm... maybe hacky?
+    // we need to hold onto when the effect was previously run, so we can time it
+    // easy and maybe hacky solution for now is to simply lift state up here
+    let mut title_effect = TextEffect::new("", 250).with_effect(Box::new(Marquee::new(50)));
 
     let mut active_player: Option<&PlayerClient> = None;
     const SLEEP_MS: u64 = 100;
@@ -86,6 +111,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // TODO: add character limit for printing
         // consider making it act like marquee
-        print(active_player).expect("failed to print");
+        print(active_player, &mut title_effect).expect("failed to print");
     }
 }

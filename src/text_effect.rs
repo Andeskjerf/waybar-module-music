@@ -1,0 +1,58 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::effects::effect::Effect;
+
+pub struct TextEffect {
+    content: String,
+    last_drawn: String,
+    effects: Vec<Box<dyn Effect>>,
+    time: u128,
+    run_every_ms: u32,
+}
+
+impl TextEffect {
+    pub fn new(content: &str, run_every_ms: u32) -> Self {
+        Self {
+            content: content.to_owned(),
+            last_drawn: content.to_owned(),
+            effects: vec![],
+            time: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            run_every_ms,
+        }
+    }
+
+    pub fn with_effect(mut self, effect: Box<dyn Effect>) -> Self {
+        self.effects.push(effect);
+        self
+    }
+
+    pub fn set_content(&mut self, content: &str) {
+        self.content = String::from(content);
+    }
+
+    pub fn draw(&mut self, now: u128) -> String {
+        // check if we're due for new draw call
+        let elapsed = now - self.time;
+        println!("{now}, {}", elapsed);
+        if (elapsed as u32) < self.run_every_ms {
+            return self.last_drawn.clone();
+        }
+        // reset our timer if we're due for drawing
+        self.time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+
+        println!("{}", self.content);
+
+        let mut text_with_effect = self.content.clone();
+        for effect in &mut self.effects {
+            text_with_effect = effect.apply(&text_with_effect);
+        }
+        self.last_drawn = text_with_effect.clone();
+        text_with_effect
+    }
+}
