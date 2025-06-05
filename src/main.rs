@@ -60,7 +60,7 @@ fn print(player: &PlayerClient, marquee: &mut TextEffect) -> Result<(), Box<dyn 
         format!("{} - {}", artist, marquee.draw(&title))
     };
 
-    println!("[ {icon} ] {formatted}",);
+    println!("[ {icon} ] {formatted}");
     Ok(())
 }
 
@@ -105,8 +105,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let active_player =
             active_player.expect("unable to get active_player despite it being Some?");
 
-        // TODO: add character limit for printing
-        // consider making it act like marquee
         print(active_player, &mut marquee).expect("failed to print");
     }
 }
