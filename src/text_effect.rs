@@ -36,7 +36,6 @@ impl TextEffect {
     pub fn draw(&mut self, now: u128) -> String {
         // check if we're due for new draw call
         let elapsed = now - self.time;
-        println!("{now}, {}", elapsed);
         if (elapsed as u32) < self.run_every_ms {
             return self.last_drawn.clone();
         }
@@ -46,11 +45,9 @@ impl TextEffect {
             .unwrap()
             .as_millis();
 
-        println!("{}", self.content);
-
         let mut text_with_effect = self.content.clone();
         for effect in &mut self.effects {
-            text_with_effect = effect.apply(&text_with_effect);
+            text_with_effect = effect.apply(text_with_effect);
         }
         self.last_drawn = text_with_effect.clone();
         text_with_effect

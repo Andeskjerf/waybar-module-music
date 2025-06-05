@@ -1,3 +1,3 @@
 pub trait Effect {
-    fn apply(&mut self, text: &str) -> String;
+    fn apply(&mut self, text: String) -> String;
 }

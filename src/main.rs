@@ -57,8 +57,6 @@ fn print(player: &PlayerClient, title_effect: &mut TextEffect) -> Result<(), Box
         Err(err) => return Err(format!("unable to get title, err == {err}").into()),
     };
 
-    println!("TITLE {title}");
-
     title_effect.set_content(&title);
 
     println!(
@@ -90,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // hmmm... maybe hacky?
     // we need to hold onto when the effect was previously run, so we can time it
     // easy and maybe hacky solution for now is to simply lift state up here
-    let mut title_effect = TextEffect::new("", 250).with_effect(Box::new(Marquee::new(50)));
+    let mut title_effect = TextEffect::new("", 150).with_effect(Box::new(Marquee::new(50)));
 
     let mut active_player: Option<&PlayerClient> = None;
     const SLEEP_MS: u64 = 100;
