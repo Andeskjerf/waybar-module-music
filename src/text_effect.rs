@@ -36,17 +36,19 @@ impl TextEffect {
         }
     }
 
-    pub fn draw(&mut self, now: u128) -> String {
+    pub fn draw(&mut self) -> String {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+
         // check if we're due for new draw call
         let elapsed = now - self.time;
         if (elapsed as u32) < self.run_every_ms {
             return self.last_drawn.clone();
         }
         // reset our timer if we're due for drawing
-        self.time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
+        self.time = now;
 
         let mut text_with_effect = self.content.clone();
         for effect in &mut self.effects {

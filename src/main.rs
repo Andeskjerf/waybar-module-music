@@ -62,16 +62,7 @@ fn print(player: &PlayerClient, title_effect: &mut TextEffect) -> Result<(), Box
     let formatted = if title.is_empty() && artist.is_empty() {
         "No data".to_owned()
     } else {
-        format!(
-            "{} - {}",
-            artist,
-            title_effect.draw(
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis()
-            )
-        )
+        format!("{} - {}", artist, title_effect.draw())
     };
 
     println!("[ {icon} ] {formatted}",);
