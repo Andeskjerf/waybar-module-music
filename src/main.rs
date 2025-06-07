@@ -2,13 +2,12 @@ use std::{error::Error, time::Duration};
 
 use dbus::blocking::Connection;
 use effects::marquee::Marquee;
+use effects::text_effect::TextEffect;
 use player_client::{PlayerClient, BASE_INTERFACE};
-use text_effect::TextEffect;
 use utils::strip_until_match;
 
 mod effects;
 mod player_client;
-mod text_effect;
 mod utils;
 
 fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Error>> {
