@@ -41,11 +41,11 @@ impl TextEffect {
         // reset our timer if we're due for drawing
         self.time = now;
 
-        let mut text_with_effect = text.to_owned();
+        let mut result = text.to_owned();
         for effect in &mut self.effects {
-            text_with_effect = effect.apply(text_with_effect);
+            result = effect.apply(result);
         }
-        self.last_drawn = text_with_effect.clone();
-        text_with_effect
+        self.last_drawn = result.clone();
+        result
     }
 }
