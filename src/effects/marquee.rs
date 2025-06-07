@@ -1,5 +1,7 @@
 use super::effect::Effect;
 
+const PADDING: &str = "     ";
+
 pub struct Marquee {
     current_pos: u16,
     max_width: u16,
@@ -24,16 +26,12 @@ impl Effect for Marquee {
         }
 
         let mut text = text.clone();
-        text.push_str(&" ".repeat(5));
+        text.push_str(PADDING);
 
         let mut result = String::new();
         for i in self.current_pos..self.current_pos + text.len() as u16 {
             let i = i % text.len() as u16;
-            let c = text
-                .chars()
-                .nth((i) as usize)
-                // .unwrap_or_else(|| panic!("no char at index {i}. len == {}\n{text}", text.len()));
-                .unwrap_or(' ');
+            let c = text.chars().nth((i) as usize).unwrap_or(' ');
             result.push(c);
         }
 
