@@ -1,13 +1,19 @@
-use std::{error::Error, time::Duration};
+use std::{
+    error::Error,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-use dbus::blocking::Connection;
+use dbus::{blocking::Connection, channel::MatchingReceiver, message::MatchRule, Message};
 use effects::marquee::Marquee;
 use effects::text_effect::TextEffect;
 use player_client::{PlayerClient, BASE_INTERFACE};
+use player_manager::PlayerManager;
 use utils::strip_until_match;
 
 mod effects;
 mod player_client;
+mod player_manager;
 mod utils;
 
 fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Error>> {
@@ -65,16 +71,17 @@ fn print(player: &PlayerClient, marquee: &mut TextEffect) -> Result<(), Box<dyn 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = Connection::new_session()?;
+    let player_manager = PlayerManager::new(Arc::new(Mutex::new(conn)));
 
     // TODO: arg handling with clap
     // TODO: events, like sending signal to play/pause active player
     // TODO: logging
 
     // TODO: thread to monitor players being opened or exited
-    let players = get_players(&conn)?
-        .iter()
-        .map(|p| PlayerClient::new(&conn, p))
-        .collect::<Vec<PlayerClient>>();
+    // let players = get_players(&conn)?
+    //     .iter()
+    //     .map(|p| PlayerClient::new(&conn, p))
+    //     .collect::<Vec<PlayerClient>>();
 
     // hmmm... maybe hacky?
     // we need to hold onto when the effect was previously run, so we can time it
@@ -92,11 +99,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // TODO: smarter check for last playing?
         // currently, the positioning of elements in the vec is static
         // so certain players will always take priority for printing if played at the same time
-        for p in &players {
-            if p.playing()? {
-                active_player = Some(p);
-            }
-        }
+        // for p in &players {
+        //     if p.playing()? {
+        //         active_player = Some(p);
+        //     }
+        // }
 
         if active_player.is_none() {
             continue;
