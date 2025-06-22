@@ -4,8 +4,9 @@ use dbus::{
     Message,
 };
 
-#[derive(Debug, Encode, Decode, PartialEq)]
+#[derive(Debug, Clone, Encode, Decode, PartialEq)]
 pub struct MprisMetadata {
+    pub player_id: String,
     album_artist: Vec<String>,
     content_created: Option<String>,
     last_used: Option<String>,
@@ -23,8 +24,9 @@ pub struct MprisMetadata {
 }
 
 impl MprisMetadata {
-    pub fn new() -> Self {
+    pub fn new(sender: String) -> Self {
         Self {
+            player_id: sender.to_string(),
             album_artist: vec![],
             content_created: None,
             last_used: None,
@@ -82,7 +84,7 @@ impl MprisMetadata {
     }
 
     pub fn from_dbus_message(msg: &Message) -> Self {
-        let mut result = MprisMetadata::new();
+        let mut result = MprisMetadata::new(msg.sender().unwrap().to_string());
 
         // FIXME: this is ugly...
         for msg in msg.iter_init() {
