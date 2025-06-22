@@ -8,12 +8,14 @@ use actors::{dbus_monitor::DBusMonitor, runnable::Runnable};
 use dbus::blocking::Connection;
 use effects::marquee::Marquee;
 use effects::text_effect::TextEffect;
+use event_bus::EventBus;
 use player_client::{PlayerClient, BASE_INTERFACE};
 use player_manager::PlayerManager;
 use utils::strip_until_match;
 
 mod actors;
 mod effects;
+mod event_bus;
 mod models;
 mod player_client;
 mod player_manager;
@@ -78,10 +80,11 @@ fn print(player: &PlayerClient, marquee: &mut TextEffect) -> Result<(), Box<dyn 
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // let conn = Connection::new_session()?;
-    // let player_manager = PlayerManager::new(Arc::new(Mutex::new(conn)));
-
-    let actors: Vec<Arc<dyn Runnable>> = vec![Arc::new(DBusMonitor::new())];
+    let event_bus: Arc<Mutex<EventBus>> = Arc::new(Mutex::new(EventBus::new()));
+    let actors: Vec<Arc<dyn Runnable>> = vec![
+        Arc::new(DBusMonitor::new(Arc::clone(&event_bus))),
+        Arc::new(PlayerManager::new(Arc::clone(&event_bus))),
+    ];
 
     for actor in actors {
         actor.run();

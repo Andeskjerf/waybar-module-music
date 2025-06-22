@@ -1,9 +1,10 @@
+use bincode::{Decode, Encode};
 use dbus::{
     arg::{RefArg, Variant},
     Message,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Encode, Decode, PartialEq)]
 pub struct MprisMetadata {
     album_artist: Vec<String>,
     content_created: Option<String>,
