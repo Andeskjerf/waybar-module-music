@@ -86,8 +86,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Arc::new(PlayerManager::new(Arc::clone(&event_bus))),
     ];
 
+    let mut handles = vec![];
     for actor in actors {
-        actor.run();
+        handles.push(actor.run());
+    }
+
+    for handle in handles {
+        let _ = handle.join();
     }
 
     // TODO: arg handling with clap
