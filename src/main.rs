@@ -4,14 +4,17 @@ use std::{
     time::Duration,
 };
 
-use dbus::{blocking::Connection, channel::MatchingReceiver, message::MatchRule, Message};
+use actors::{dbus_monitor::DBusMonitor, runnable::Runnable};
+use dbus::blocking::Connection;
 use effects::marquee::Marquee;
 use effects::text_effect::TextEffect;
 use player_client::{PlayerClient, BASE_INTERFACE};
 use player_manager::PlayerManager;
 use utils::strip_until_match;
 
+mod actors;
 mod effects;
+mod models;
 mod player_client;
 mod player_manager;
 mod utils;
@@ -44,20 +47,25 @@ fn sanitize_title(title: String, artist: &str) -> String {
 }
 
 fn print(player: &PlayerClient, marquee: &mut TextEffect) -> Result<(), Box<dyn Error>> {
-    let icon = match player.playing()? {
-        true => "",
-        false => "",
-    };
+    let icon = "icon";
 
-    let artist = match player.artist() {
-        Ok(t) => t,
-        Err(err) => return Err(format!("unable to get artist, err == {err}").into()),
-    };
+    let artist = "artist";
 
-    let title = match player.title() {
-        Ok(t) => sanitize_title(t, &artist),
-        Err(err) => return Err(format!("unable to get title, err == {err}").into()),
-    };
+    let title = "title";
+    // let icon = match player.playing()? {
+    //     true => "",
+    //     false => "",
+    // };
+
+    // let artist = match player.artist() {
+    //     Ok(t) => t,
+    //     Err(err) => return Err(format!("unable to get artist, err == {err}").into()),
+    // };
+
+    // let title = match player.title() {
+    //     Ok(t) => sanitize_title(t, &artist),
+    //     Err(err) => return Err(format!("unable to get title, err == {err}").into()),
+    // };
 
     let formatted = if title.is_empty() && artist.is_empty() {
         "No data".to_owned()
@@ -70,8 +78,14 @@ fn print(player: &PlayerClient, marquee: &mut TextEffect) -> Result<(), Box<dyn 
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let conn = Connection::new_session()?;
-    let player_manager = PlayerManager::new(Arc::new(Mutex::new(conn)));
+    // let conn = Connection::new_session()?;
+    // let player_manager = PlayerManager::new(Arc::new(Mutex::new(conn)));
+
+    let actors: Vec<Arc<dyn Runnable>> = vec![Arc::new(DBusMonitor::new())];
+
+    for actor in actors {
+        actor.run();
+    }
 
     // TODO: arg handling with clap
     // TODO: events, like sending signal to play/pause active player
