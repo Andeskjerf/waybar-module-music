@@ -3,6 +3,7 @@ use std::{collections::HashMap, sync::mpsc};
 #[derive(Eq, Hash, PartialEq)]
 pub enum EventType {
     PlayerSongChanged,
+    PlaybackChanged,
 }
 
 pub struct EventBus {
