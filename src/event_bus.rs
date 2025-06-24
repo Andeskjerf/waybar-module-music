@@ -65,20 +65,6 @@ impl EventBus {
         (bus, handle)
     }
 
-    pub fn subscribe(&mut self, event_type: EventType) -> mpsc::Receiver<Vec<u8>> {
-        let (tx, rx) = mpsc::channel();
-        self.senders.entry(event_type).or_default().push(tx);
-        rx
-    }
-
-    pub fn publish(&self, event_type: EventType, event: Vec<u8>) {
-        if let Some(senders) = self.senders.get(&event_type) {
-            for sender in senders {
-                let _ = sender.send(event.clone());
-            }
-        }
-    }
-
     pub fn run(mut self) {
         while let Ok(msg) = self.rx.recv() {
             match msg {
@@ -94,10 +80,7 @@ impl EventBus {
                     response_tx,
                 } => {
                     let (tx, rx) = mpsc::channel();
-                    self.senders
-                        .entry(event_type)
-                        .or_insert_with(Vec::new)
-                        .push(tx);
+                    self.senders.entry(event_type).or_default().push(tx);
                     let _ = response_tx.send(rx);
                 }
             }
