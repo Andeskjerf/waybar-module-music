@@ -1,14 +1,10 @@
-pub fn strip_until_match(remove_until: &str, input: &str) -> String {
-    let mut to_strip = String::new();
-    input.clone_into(&mut to_strip);
-    to_strip = to_strip.chars().rev().collect();
+pub fn strip_until_match<'a>(remove_until: &'a str, input: &'a str) -> &'a str {
+    let needle = remove_until.to_lowercase();
+    let haystack = input.to_lowercase();
 
-    let mut stripped = String::new();
-    while let Some(c) = to_strip.pop() {
-        if stripped.to_lowercase() == remove_until.to_lowercase() {
-            break;
-        }
-        stripped.push(c);
+    if let Some(pos) = haystack.find(&needle) {
+        &input[pos + remove_until.len()..]
+    } else {
+        input
     }
-    to_strip.chars().rev().collect()
 }
