@@ -4,11 +4,6 @@ A dynamic, currently playing module intended for Waybar (might work fine on othe
 
 It uses DBus to communicate with MPRIS compatible players.
 
-<sub>why rust?</sub>
-
-<sub>because i can</sub>
-
-
 ## Features
 
 - Marquee effect on long titles
@@ -77,3 +72,8 @@ The module has the following states for CSS styling in Waybar
 "playing"
 "paused"
 ```
+
+
+<sub>why rust?</sub>
+
+<sub>because i can</sub>
