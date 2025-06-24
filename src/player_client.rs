@@ -11,7 +11,6 @@ use crate::{
 
 #[derive(Debug)]
 pub struct PlayerClient {
-    player_name: String,
     metadata: MprisMetadata,
     playback_state: Option<MprisPlayback>,
     pub last_updated: u64,
@@ -21,18 +20,13 @@ pub struct PlayerClient {
 }
 
 impl PlayerClient {
-    pub fn new(event_bus: EventBusHandle, player_name: &str, metadata: MprisMetadata) -> Self {
+    pub fn new(event_bus: EventBusHandle, metadata: MprisMetadata) -> Self {
         Self {
             event_bus,
-            player_name: player_name.to_owned(),
             metadata,
             last_updated: 0,
             playback_state: None,
         }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.player_name
     }
 
     pub fn playing(&self) -> bool {

@@ -69,11 +69,7 @@ impl PlayerManager {
                 if let Ok(metadata) = self.dbus_service.query_metadata(&player_id) {
                     lock.insert(
                         player_id.clone(),
-                        PlayerClient::new(
-                            self.event_bus.clone(),
-                            &metadata.player_id.clone(),
-                            metadata,
-                        ),
+                        PlayerClient::new(self.event_bus.clone(), metadata),
                     );
                 } else {
                     println!(
@@ -86,6 +82,7 @@ impl PlayerManager {
             let player = lock.get_mut(&player_id).unwrap();
             player.update_playback_state(playback_state);
 
+            // if the latest player is not playing, find the most recent one that is still playing and display that instead
             if !player.playing() {
                 let (player_id, _) =
                     lock.iter()
@@ -131,11 +128,7 @@ impl PlayerManager {
                 None => {
                     lock.insert(
                         metadata.player_id.clone(),
-                        PlayerClient::new(
-                            self.event_bus.clone(),
-                            &metadata.player_id.clone(),
-                            metadata,
-                        ),
+                        PlayerClient::new(self.event_bus.clone(), metadata),
                     );
                 }
             };
