@@ -4,7 +4,8 @@ A dynamic, currently playing module intended for Waybar (might work fine on othe
 
 It uses DBus to communicate with MPRIS compatible players.
 
-<small>why rust?</small>
+<sub>why rust?</sub>
+
 <sub>because i can</sub>
 
 
