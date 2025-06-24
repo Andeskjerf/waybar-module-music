@@ -114,6 +114,8 @@ impl Display {
             let lock = player_state.lock().unwrap();
 
             if lock.is_none() {
+                // FIXME: not nice to have to drop the lock since we lock again in format_json_output
+                drop(lock);
                 println!("{}", self.format_json_output("[ = ] No activity"));
                 continue;
             }
