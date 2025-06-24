@@ -4,7 +4,7 @@ use dbus::Message;
 #[derive(Debug, Encode, Decode, PartialEq)]
 pub struct MprisPlayback {
     pub player_id: String,
-    playing: Option<String>,
+    pub playing: Option<String>,
 }
 
 impl MprisPlayback {
