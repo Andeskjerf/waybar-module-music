@@ -9,7 +9,7 @@ use dbus::{blocking::Connection, message::MatchRule, Message};
 
 use crate::{
     event_bus::{EventBus, EventType},
-    models::mpris_metadata::MprisMetadata,
+    models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
 };
 
 use super::runnable::Runnable;
@@ -18,24 +18,56 @@ pub struct DBusMonitor {
     event_bus: Arc<Mutex<EventBus>>,
 }
 
+// TODO: we also need to discover players when we run the program initially
+// who should handle that? the monitor, or a new actor?
+
 impl DBusMonitor {
     pub fn new(event_bus: Arc<Mutex<EventBus>>) -> Self {
         Self { event_bus }
     }
 
+    fn determine_event_type(msg: &Message) -> EventType {
+        for elem in msg.iter_init() {
+            if let Some(mut args) = elem.as_iter() {
+                if let Some(arg_type) = args.next() {
+                    match arg_type.as_str() {
+                        Some(arg_type) => match arg_type {
+                            "Metadata" => return EventType::PlayerSongChanged,
+                            "PlaybackStatus" => return EventType::PlaybackChanged,
+                            _ => return EventType::Unknown(arg_type.to_string()),
+                        },
+                        None => return EventType::ParseError,
+                    };
+                };
+            };
+        }
+
+        println!("got to end of message iteration without finding event type and without error, this should not happen");
+        EventType::ParseError
+    }
+
     fn handle_on_match(msg: &Message, event_bus: &Arc<Mutex<EventBus>>) -> bool {
-        let metadata = MprisMetadata::from_dbus_message(msg);
-        let encoded = bincode::encode_to_vec(&metadata, config::standard());
+        let event_type = DBusMonitor::determine_event_type(msg);
+        let encoded = match event_type {
+            EventType::PlayerSongChanged => {
+                bincode::encode_to_vec(MprisMetadata::from_dbus_message(msg), config::standard())
+            }
+            EventType::PlaybackChanged => {
+                bincode::encode_to_vec(MprisPlayback::from_dbus_message(msg), config::standard())
+            }
+            EventType::ParseError => {
+                println!("failed to parse message. skipping");
+                return false;
+            }
+            EventType::Unknown(found_arg) => {
+                println!("got unknown event with name '{found_arg}'. skipping");
+                return false;
+            }
+        };
 
         match encoded {
-            Ok(encoded) => {
-                event_bus
-                    .lock()
-                    .unwrap()
-                    .publish(EventType::PlayerSongChanged, encoded);
-                println!("{:?}", metadata);
-            }
-            Err(err) => panic!("failed to encode MPRIS metadata!\n----\n{err}"),
+            Ok(encoded) => event_bus.lock().unwrap().publish(event_type, encoded),
+            Err(err) => panic!("failed to encode MPRIS data!\n----\n{err}"),
         }
         true
     }
