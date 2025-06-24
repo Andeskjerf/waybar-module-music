@@ -2,7 +2,7 @@ use bincode::config;
 
 use crate::{
     effects::{marquee::Marquee, text_effect::TextEffect},
-    event_bus::{EventBus, EventBusHandle, EventType},
+    event_bus::{EventBusHandle, EventType},
     models::player_state::PlayerState,
     utils::strip_until_match,
 };
@@ -84,6 +84,7 @@ impl Display {
             TextEffect::new(apply_effects_ms).with_effect(Box::new(Marquee::new(max_width, true)));
 
         const SLEEP_MS: u64 = 100;
+        // TODO: only update display if there's a state change or time to run an effect
         loop {
             std::thread::sleep(Duration::from_millis(SLEEP_MS));
             let lock = player_state.lock().unwrap();

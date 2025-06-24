@@ -36,8 +36,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: events, like sending signal to play/pause active player
     // TODO: logging
 
-    // let players =  get_players(conn);
-
     let (event_bus, event_bus_handle) = EventBus::new();
     thread::spawn(move || {
         event_bus.run();
