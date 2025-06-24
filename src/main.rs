@@ -1,15 +1,12 @@
 use std::{
-    error::Error,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
 use actors::{dbus_monitor::DBusMonitor, display::Display, runnable::Runnable};
 use dbus::blocking::Connection;
-use effects::marquee::Marquee;
-use effects::text_effect::TextEffect;
 use event_bus::EventBus;
-use player_client::{PlayerClient, BASE_INTERFACE};
+use player_client::BASE_INTERFACE;
 use player_manager::PlayerManager;
 use utils::strip_until_match;
 
@@ -37,16 +34,6 @@ fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Err
     Ok(players)
 }
 
-/// If the artist name is leading the title, we remove the artist from the title
-fn sanitize_title(title: String, artist: &str) -> String {
-    if title
-        .to_lowercase()
-        .contains(&format!("{} -", &artist.to_lowercase()))
-    {
-        return strip_until_match(&format!("{} -", artist), &title).to_owned();
-    }
-    title
-}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_bus: Arc<Mutex<EventBus>> = Arc::new(Mutex::new(EventBus::new()));
