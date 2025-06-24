@@ -3,10 +3,11 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc='A Waybar module to show & control the current MPRIS media players state'
 arch=('x86_64')
-url=https://github.com/Andeskjerf/waybar-module-music.git
-license=('GPLv3')
-depends=()
-makedepends=('rust')
+url="https://github.com/Andeskjerf/waybar-module-music"
+license=('GPL3')
+depends=('dbus')
+makedepends=('rust' 'git')
+optdepends=('waybar: for integration with Waybar')
 source=("${pkgname}::git+https://github.com/Andeskjerf/waybar-module-music.git")
 sha256sums=('SKIP')
 provides=('waybar-module-music')
@@ -15,7 +16,7 @@ options=(strip !debug)
 
 pkgver() {
   cd ${pkgname}
-  cargo_version=$(taplo get package.version <Cargo.toml)
+  cargo_version=$(grep '^version' Cargo.toml | head -n1 | cut -d'"' -f2)
   printf "${cargo_version}_r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
@@ -29,10 +30,10 @@ build() {
   cargo build --release --locked --offline
 }
 
-# check() {
-#   cd ${pkgname}
-#   cargo test --locked --offline
-# }
+check() {
+  cd ${pkgname}
+  cargo test --locked --offline
+}
 
 package() {
   cd ${pkgname}
