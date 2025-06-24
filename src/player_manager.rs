@@ -3,7 +3,7 @@ use bincode::config;
 use crate::{
     actors::runnable::Runnable,
     event_bus::{EventBus, EventType},
-    models::mpris_metadata::MprisMetadata,
+    models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
     player_client::PlayerClient,
 };
 use std::{
@@ -41,7 +41,8 @@ impl PlayerManager {
     fn init_listener_threads(self: Arc<Self>) {
         {
             let player_manager = Arc::clone(&self);
-            thread::spawn(move || player_manager.listen_playback_changed());
+            let players = Arc::clone(&player_manager.players);
+            thread::spawn(move || player_manager.listen_playback_changed(players));
         }
         {
             let player_manager = Arc::clone(&self);
@@ -50,14 +51,39 @@ impl PlayerManager {
         }
     }
 
-    fn listen_playback_changed(self: Arc<Self>) {
+    fn listen_playback_changed(
+        self: Arc<Self>,
+        players: Arc<Mutex<HashMap<String, PlayerClient>>>,
+    ) {
         let rx = self
             .event_bus
             .lock()
             .unwrap()
             .subscribe(EventType::PlaybackChanged);
 
-        loop {}
+        loop {
+            let msg = rx.recv();
+            let (playback_state, _): (MprisPlayback, usize) = match msg {
+                Ok(encoded) => {
+                    bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
+                }
+                Err(err) => {
+                    println!("failed to decode message in PlayerManager!\n----\n{err}");
+                    continue;
+                }
+            };
+
+            let mut lock = players.lock().unwrap();
+            let player = lock.get_mut(&playback_state.player_id);
+
+            match player {
+                Some(player) => player.update_plaback_state(playback_state),
+                None => {
+                    println!("got playback update for unknown player ID");
+                    continue;
+                }
+            };
+        }
     }
 
     fn listen_song_changed(&self, players: Arc<Mutex<HashMap<String, PlayerClient>>>) {
@@ -69,7 +95,7 @@ impl PlayerManager {
 
         loop {
             let msg = rx.recv();
-            let (metadata, len): (MprisMetadata, usize) = match msg {
+            let (metadata, _): (MprisMetadata, usize) = match msg {
                 Ok(encoded) => {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
                 }
@@ -83,14 +109,16 @@ impl PlayerManager {
             let player = lock.get_mut(&metadata.player_id);
 
             match player {
-                Some(player) => player.update_metadata(metadata),
+                Some(player) => {
+                    player.update_metadata(metadata);
+                }
                 None => {
-                    players.lock().unwrap().insert(
+                    lock.insert(
                         metadata.player_id.clone(),
                         PlayerClient::new(&metadata.player_id.clone(), metadata),
                     );
                 }
-            }
+            };
         }
     }
 }
