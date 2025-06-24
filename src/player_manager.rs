@@ -115,7 +115,11 @@ impl PlayerManager {
                 None => {
                     lock.insert(
                         metadata.player_id.clone(),
-                        PlayerClient::new(&metadata.player_id.clone(), metadata),
+                        PlayerClient::new(
+                            Arc::clone(&self.event_bus),
+                            &metadata.player_id.clone(),
+                            metadata,
+                        ),
                     );
                 }
             };

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::mpsc};
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub enum EventType {
     PlayerSongChanged,
     PlaybackChanged,
@@ -8,6 +8,7 @@ pub enum EventType {
     Unknown(String),
 }
 
+#[derive(Debug)]
 pub struct EventBus {
     senders: HashMap<EventType, Vec<mpsc::Sender<Vec<u8>>>>,
 }
