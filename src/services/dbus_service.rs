@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use dbus::{
     arg::PropMap,
-    blocking::{stdintf::org_freedesktop_dbus::Properties, Connection},
+    blocking::{stdintf::org_freedesktop_dbus::Properties, Connection, Proxy},
     message::MatchRule,
 };
 
@@ -62,6 +62,52 @@ impl DBusService {
             player_id.to_string(),
             result,
         ))
+    }
+
+    pub fn get_media_player_proxy<'a>(&'a self, player_id: &'a str) -> Proxy<'a, &'a Connection> {
+        self.conn.with_proxy(
+            player_id,
+            "/org/mpris/MediaPlayer2",
+            Duration::from_millis(5000),
+        )
+    }
+
+    fn call_player_method(
+        &self,
+        player_id: &str,
+        method: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let proxy = self.get_media_player_proxy(player_id);
+        proxy.method_call::<(), _, _, _>("org.mpris.MediaPlayer2.Player", method, ())?;
+        Ok(())
+    }
+
+    pub fn play_mpris_player(&self, player_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.call_player_method(player_id, "Play")?;
+        Ok(())
+    }
+
+    pub fn pause_mpris_player(&self, player_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.call_player_method(player_id, "Pause")?;
+        Ok(())
+    }
+
+    pub fn play_pause_mpris_player(
+        &self,
+        player_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.call_player_method(player_id, "PlayPause")?;
+        Ok(())
+    }
+
+    pub fn next_mpris_player(&self, player_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.call_player_method(player_id, "Next")?;
+        Ok(())
+    }
+
+    pub fn previous_mpris_player(&self, player_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+        self.call_player_method(player_id, "Previous")?;
+        Ok(())
     }
 }
 
