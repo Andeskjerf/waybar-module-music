@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, Mutex},
+    sync::Arc,
     thread::{self, JoinHandle},
     time::Duration,
 };
@@ -8,21 +8,21 @@ use bincode::config;
 use dbus::{blocking::Connection, message::MatchRule, Message};
 
 use crate::{
-    event_bus::{EventBus, EventType},
+    event_bus::{EventBusHandle, EventType},
     models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
 };
 
 use super::runnable::Runnable;
 
 pub struct DBusMonitor {
-    event_bus: Arc<Mutex<EventBus>>,
+    event_bus: EventBusHandle,
 }
 
 // TODO: we also need to discover players when we run the program initially
 // who should handle that? the monitor, or a new actor?
 
 impl DBusMonitor {
-    pub fn new(event_bus: Arc<Mutex<EventBus>>) -> Self {
+    pub fn new(event_bus: EventBusHandle) -> Self {
         Self { event_bus }
     }
 
@@ -46,7 +46,7 @@ impl DBusMonitor {
         EventType::ParseError
     }
 
-    fn handle_on_match(msg: &Message, event_bus: &Arc<Mutex<EventBus>>) -> bool {
+    fn handle_on_match(msg: &Message, event_bus: EventBusHandle) -> bool {
         let event_type = DBusMonitor::determine_event_type(msg);
         let encoded = match event_type {
             EventType::PlayerSongChanged => {
@@ -67,7 +67,7 @@ impl DBusMonitor {
         };
 
         match encoded {
-            Ok(encoded) => event_bus.lock().unwrap().publish(event_type, encoded),
+            Ok(encoded) => event_bus.publish(event_type, encoded),
             Err(err) => panic!("failed to encode MPRIS data!\n----\n{err}"),
         }
         true
@@ -83,9 +83,10 @@ impl DBusMonitor {
             .with_member("PropertiesChanged");
 
         // TODO: could maybe do something smart with this token
-        let event_bus = Arc::clone(&self.event_bus);
+        // let event_bus = Arc::clone(&self.event_bus);
+        let event_bus = self.event_bus.clone();
         let token = match conn.add_match(rule, move |_: (), _, msg| {
-            DBusMonitor::handle_on_match(msg, &event_bus)
+            DBusMonitor::handle_on_match(msg, event_bus.clone())
         }) {
             Ok(token) => token,
             Err(err) => panic!("DBusMonitor was unable to monitor MPRIS players!\n{err}"),

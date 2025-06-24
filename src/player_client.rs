@@ -1,9 +1,7 @@
-use std::sync::{Arc, Mutex};
-
 use bincode::config;
 
 use crate::{
-    event_bus::{EventBus, EventType},
+    event_bus::{EventBusHandle, EventType},
     models::{
         mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback, player_state::PlayerState,
     },
@@ -20,15 +18,11 @@ pub struct PlayerClient {
     playback_state: Option<MprisPlayback>,
     // does this make sense?
     // to let the player object itself report its state, or should the manager do that?
-    event_bus: Arc<Mutex<EventBus>>,
+    event_bus: EventBusHandle,
 }
 
 impl PlayerClient {
-    pub fn new(
-        event_bus: Arc<Mutex<EventBus>>,
-        player_name: &str,
-        metadata: MprisMetadata,
-    ) -> Self {
+    pub fn new(event_bus: EventBusHandle, player_name: &str, metadata: MprisMetadata) -> Self {
         Self {
             event_bus,
             player_name: player_name.to_owned(),
@@ -48,8 +42,6 @@ impl PlayerClient {
         ) {
             Ok(encoded) => self
                 .event_bus
-                .lock()
-                .unwrap()
                 .publish(EventType::PlayerStateChanged, encoded),
             Err(err) => {
                 println!("failed to encode player state, skipping publish\n\n{err}");

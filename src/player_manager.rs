@@ -2,7 +2,7 @@ use bincode::config;
 
 use crate::{
     actors::runnable::Runnable,
-    event_bus::{EventBus, EventType},
+    event_bus::{EventBusHandle, EventType},
     models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
     player_client::PlayerClient,
 };
@@ -27,11 +27,11 @@ so: PlayerManager needs to do a few things.
 
 pub struct PlayerManager {
     players: Arc<Mutex<HashMap<String, PlayerClient>>>,
-    event_bus: Arc<Mutex<EventBus>>,
+    event_bus: EventBusHandle,
 }
 
 impl PlayerManager {
-    pub fn new(event_bus: Arc<Mutex<EventBus>>) -> Self {
+    pub fn new(event_bus: EventBusHandle) -> Self {
         Self {
             players: Arc::new(Mutex::new(HashMap::new())),
             event_bus,
@@ -57,9 +57,8 @@ impl PlayerManager {
     ) {
         let rx = self
             .event_bus
-            .lock()
-            .unwrap()
-            .subscribe(EventType::PlaybackChanged);
+            .subscribe(EventType::PlaybackChanged)
+            .expect("failed to subscribe to PlaybackChanged");
 
         loop {
             let msg = rx.recv();
@@ -89,9 +88,8 @@ impl PlayerManager {
     fn listen_song_changed(&self, players: Arc<Mutex<HashMap<String, PlayerClient>>>) {
         let rx = self
             .event_bus
-            .lock()
-            .unwrap()
-            .subscribe(EventType::PlayerSongChanged);
+            .subscribe(EventType::PlayerSongChanged)
+            .expect("failed to subscribe to PlayerSongChanged");
 
         loop {
             let msg = rx.recv();
@@ -116,7 +114,7 @@ impl PlayerManager {
                     lock.insert(
                         metadata.player_id.clone(),
                         PlayerClient::new(
-                            Arc::clone(&self.event_bus),
+                            self.event_bus.clone(),
                             &metadata.player_id.clone(),
                             metadata,
                         ),

@@ -2,7 +2,7 @@ use bincode::config;
 
 use crate::{
     effects::{marquee::Marquee, text_effect::TextEffect},
-    event_bus::{EventBus, EventType},
+    event_bus::{EventBus, EventBusHandle, EventType},
     models::player_state::PlayerState,
     utils::strip_until_match,
 };
@@ -16,11 +16,11 @@ use std::{
 
 pub struct Display {
     player_state: Arc<Mutex<Option<PlayerState>>>,
-    event_bus: Arc<Mutex<EventBus>>,
+    event_bus: EventBusHandle,
 }
 
 impl Display {
-    pub fn new(event_bus: Arc<Mutex<EventBus>>) -> Self {
+    pub fn new(event_bus: EventBusHandle) -> Self {
         Self {
             player_state: Arc::new(Mutex::new(None)),
             event_bus,
@@ -47,9 +47,8 @@ impl Display {
     fn listen_player_state(&self, player_state: Arc<Mutex<Option<PlayerState>>>) {
         let rx = self
             .event_bus
-            .lock()
-            .unwrap()
-            .subscribe(EventType::PlayerStateChanged);
+            .subscribe(EventType::PlayerStateChanged)
+            .expect("failed to subscribe to PlayerStateChanged");
 
         loop {
             let msg = rx.recv();

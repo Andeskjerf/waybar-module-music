@@ -1,7 +1,4 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{sync::Arc, thread, time::Duration};
 
 use actors::{dbus_monitor::DBusMonitor, display::Display, runnable::Runnable};
 use dbus::blocking::Connection;
@@ -34,13 +31,22 @@ fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Err
     Ok(players)
 }
 
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let event_bus: Arc<Mutex<EventBus>> = Arc::new(Mutex::new(EventBus::new()));
+    // TODO: arg handling with clap
+    // TODO: events, like sending signal to play/pause active player
+    // TODO: logging
+
+    // let players =  get_players(conn);
+
+    let (event_bus, event_bus_handle) = EventBus::new();
+    thread::spawn(move || {
+        event_bus.run();
+    });
+
     let actors: Vec<Arc<dyn Runnable>> = vec![
-        Arc::new(DBusMonitor::new(Arc::clone(&event_bus))),
-        Arc::new(PlayerManager::new(Arc::clone(&event_bus))),
-        Arc::new(Display::new(Arc::clone(&event_bus))),
+        Arc::new(DBusMonitor::new(event_bus_handle.clone())),
+        Arc::new(PlayerManager::new(event_bus_handle.clone())),
+        Arc::new(Display::new(event_bus_handle.clone())),
     ];
 
     let mut handles = vec![];
@@ -53,14 +59,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
-
-    // TODO: arg handling with clap
-    // TODO: events, like sending signal to play/pause active player
-    // TODO: logging
-
-    // TODO: thread to monitor players being opened or exited
-    // let players = get_players(&conn)?
-    //     .iter()
-    //     .map(|p| PlayerClient::new(&conn, p))
-    //     .collect::<Vec<PlayerClient>>();
 }
