@@ -107,16 +107,15 @@ impl Display {
         let mut marquee =
             TextEffect::new(apply_effects_ms).with_effect(Box::new(Marquee::new(max_width, true)));
 
-        const SLEEP_MS: u64 = 100;
         // TODO: only update display if there's a state change or time to run an effect
         loop {
-            std::thread::sleep(Duration::from_millis(SLEEP_MS));
+            std::thread::sleep(Duration::from_millis(apply_effects_ms as u64));
             let lock = player_state.lock().unwrap();
 
             if lock.is_none() {
                 // FIXME: not nice to have to drop the lock since we lock again in format_json_output
                 drop(lock);
-                println!("{}", self.format_json_output("[ = ] No activity"));
+                println!("{}", self.format_json_output("Nothing happening"));
                 continue;
             }
 
@@ -130,12 +129,17 @@ impl Display {
             let artist = &player_state.artist;
             let title = &player_state.title;
 
+            println!("{artist}");
             let formatted = if title.is_empty() && artist.is_empty() {
                 "No data".to_owned()
             } else {
                 format!(
-                    "{} - {}",
-                    artist,
+                    "{}{}",
+                    if artist.is_empty() {
+                        String::new()
+                    } else {
+                        format!("{} - ", artist)
+                    },
                     marquee.draw(&Display::sanitize_title(title.clone(), artist))
                 )
             };
