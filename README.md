@@ -52,6 +52,8 @@ usage: waybar-module-music [options]
         -h, --help                  Prints this help message
         -v, --version               Get the version
 
+        -w, --whitelist             Only monitor specified players. Can be used multiple times or invoked like "spotify firefox"
+
         --play-icon <value>         Set the play icon. default: 
         --pause-icon <value>        Set the play icon. default: 
         --flip-controls             Draw the player controls on the right side instead of left
