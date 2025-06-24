@@ -7,11 +7,11 @@ pub struct PlayerState {
     artist: String,
     album: String,
     title: String,
-    playing: bool,
+    playing: Option<bool>,
 }
 
 impl PlayerState {
-    pub fn new(artist: String, album: String, title: String, playing: bool) -> Self {
+    pub fn new(artist: String, album: String, title: String, playing: Option<bool>) -> Self {
         Self {
             artist,
             album,
@@ -20,11 +20,14 @@ impl PlayerState {
         }
     }
 
-    pub fn from_mpris_data(metadata: MprisMetadata, playback: MprisPlayback) -> Self {
+    pub fn from_mpris_data(metadata: MprisMetadata, playback: Option<MprisPlayback>) -> Self {
         let artist = metadata.artist.first().unwrap().clone();
         let album = metadata.album.unwrap();
         let title = metadata.title.unwrap();
-        let playing = playback.playing.unwrap() == "Playing";
+        let playing = playback
+            .unwrap_or_default()
+            .playing
+            .map(|elem| elem == "Playing");
 
         PlayerState::new(artist, album, title, playing)
     }

@@ -1,7 +1,7 @@
 use bincode::{Decode, Encode};
 use dbus::Message;
 
-#[derive(Debug, Encode, Decode, PartialEq)]
+#[derive(Debug, Default, Clone, Encode, Decode, PartialEq)]
 pub struct MprisPlayback {
     pub player_id: String,
     pub playing: Option<String>,

@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::mpsc};
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub enum EventType {
+    PlayerStateChanged,
     PlayerSongChanged,
     PlaybackChanged,
     ParseError,

@@ -63,6 +63,7 @@ impl DBusMonitor {
                 println!("got unknown event with name '{found_arg}'. skipping");
                 return false;
             }
+            _ => return false, // ignore other messages
         };
 
         match encoded {
