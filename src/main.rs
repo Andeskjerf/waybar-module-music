@@ -13,6 +13,7 @@ mod event_bus;
 mod models;
 mod player_client;
 mod player_manager;
+mod services;
 mod utils;
 
 fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Error>> {

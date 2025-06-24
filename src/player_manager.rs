@@ -65,6 +65,7 @@ impl PlayerManager {
             match player {
                 Some(player) => player.update_playback_state(playback_state),
                 None => {
+                    // TODO: query the player instead of dropping the event
                     println!("got playback update for unknown player ID");
                     continue;
                 }
