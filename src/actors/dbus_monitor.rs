@@ -78,6 +78,7 @@ impl DBusMonitor {
         true
     }
 
+    // TODO: some of this should be handled by DBusService
     pub fn begin_monitoring(&self) -> Result<(), Box<dyn std::error::Error>> {
         let conn = Connection::new_session()?;
 
