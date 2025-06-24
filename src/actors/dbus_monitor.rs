@@ -99,7 +99,10 @@ impl DBusMonitor {
         };
 
         loop {
-            let result = conn.process(Duration::from_millis(1000)).unwrap();
+            match conn.process(Duration::from_millis(1000)) {
+                Ok(res) => (),
+                Err(err) => println!("failed to process DBus connection\n{err}"),
+            }
         }
 
         Ok(())
