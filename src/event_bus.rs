@@ -4,6 +4,8 @@ use std::{collections::HashMap, sync::mpsc};
 pub enum EventType {
     PlayerSongChanged,
     PlaybackChanged,
+    ParseError,
+    Unknown(String),
 }
 
 pub struct EventBus {
