@@ -4,6 +4,7 @@ use crate::{
     effects::{marquee::Marquee, text_effect::TextEffect},
     event_bus::{EventBus, EventType},
     models::player_state::PlayerState,
+    utils::strip_until_match,
 };
 
 use super::runnable::Runnable;
@@ -66,6 +67,17 @@ impl Display {
         }
     }
 
+    /// If the artist name is leading the title, we remove the artist from the title
+    fn sanitize_title(title: String, artist: &str) -> String {
+        if title
+            .to_lowercase()
+            .contains(&format!("{} -", &artist.to_lowercase()))
+        {
+            return strip_until_match(&format!("{} -", artist), &title).to_owned();
+        }
+        title
+    }
+
     fn display(&self, player_state: Arc<Mutex<Option<PlayerState>>>) {
         let max_width = 20;
         let apply_effects_ms = 200;
@@ -95,7 +107,11 @@ impl Display {
             let formatted = if title.is_empty() && artist.is_empty() {
                 "No data".to_owned()
             } else {
-                format!("{} - {}", artist, marquee.draw(title))
+                format!(
+                    "{} - {}",
+                    artist,
+                    marquee.draw(&Display::sanitize_title(title.clone(), artist))
+                )
             };
 
             println!("[ {icon} ] {formatted}");
