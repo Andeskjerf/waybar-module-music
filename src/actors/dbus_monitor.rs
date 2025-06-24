@@ -10,20 +10,25 @@ use dbus::{blocking::Connection, message::MatchRule, Message};
 use crate::{
     event_bus::{EventBusHandle, EventType},
     models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
+    services::dbus_service::DBusService,
 };
 
 use super::runnable::Runnable;
 
 pub struct DBusMonitor {
     event_bus: EventBusHandle,
+    dbus_service: Arc<DBusService>,
 }
 
 // TODO: we also need to discover players when we run the program initially
 // who should handle that? the monitor, or a new actor?
 
 impl DBusMonitor {
-    pub fn new(event_bus: EventBusHandle) -> Self {
-        Self { event_bus }
+    pub fn new(event_bus: EventBusHandle, dbus_service: Arc<DBusService>) -> Self {
+        Self {
+            event_bus,
+            dbus_service,
+        }
     }
 
     fn determine_event_type(msg: &Message) -> EventType {

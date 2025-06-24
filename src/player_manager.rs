@@ -5,6 +5,7 @@ use crate::{
     event_bus::{EventBusHandle, EventType},
     models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
     player_client::PlayerClient,
+    services::dbus_service::DBusService,
 };
 use std::{
     collections::HashMap,
@@ -14,13 +15,15 @@ use std::{
 
 pub struct PlayerManager {
     players: Arc<Mutex<HashMap<String, PlayerClient>>>,
+    dbus_service: Arc<DBusService>,
     event_bus: EventBusHandle,
 }
 
 impl PlayerManager {
-    pub fn new(event_bus: EventBusHandle) -> Self {
+    pub fn new(event_bus: EventBusHandle, dbus_service: Arc<DBusService>) -> Self {
         Self {
             players: Arc::new(Mutex::new(HashMap::new())),
+            dbus_service,
             event_bus,
         }
     }
@@ -60,14 +63,25 @@ impl PlayerManager {
             };
 
             let mut lock = players.lock().unwrap();
-            let player = lock.get_mut(&playback_state.player_id);
+            let player_id = playback_state.player_id.clone();
+            let player = lock.get_mut(&player_id);
 
             match player {
                 Some(player) => player.update_playback_state(playback_state),
                 None => {
-                    // TODO: query the player instead of dropping the event
-                    println!("got playback update for unknown player ID");
-                    continue;
+                    if let Ok(metadata) = self.dbus_service.query_metadata(&player_id) {
+                        let mut player = PlayerClient::new(
+                            self.event_bus.clone(),
+                            &metadata.player_id.clone(),
+                            metadata,
+                        );
+                        player.update_playback_state(playback_state);
+                        lock.insert(player_id.clone(), player);
+                    } else {
+                        println!(
+                            "got playback update for unknown player ID, and failed to query player"
+                        );
+                    }
                 }
             };
         }

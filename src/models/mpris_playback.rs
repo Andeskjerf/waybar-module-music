@@ -15,6 +15,13 @@ impl MprisPlayback {
         }
     }
 
+    pub fn new_with_playing(player_id: String, playing: String) -> Self {
+        Self {
+            player_id,
+            playing: Some(playing),
+        }
+    }
+
     pub fn from_dbus_message(msg: &Message) -> Self {
         let mut result = MprisPlayback::new(msg.sender().unwrap().to_string());
 

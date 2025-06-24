@@ -1,11 +1,9 @@
-use std::{sync::Arc, thread, time::Duration};
+use std::{sync::Arc, thread};
 
 use actors::{dbus_monitor::DBusMonitor, display::Display, runnable::Runnable};
-use dbus::blocking::Connection;
 use event_bus::EventBus;
-use player_client::BASE_INTERFACE;
 use player_manager::PlayerManager;
-use utils::strip_until_match;
+use services::dbus_service::DBusService;
 
 mod actors;
 mod effects;
@@ -15,22 +13,6 @@ mod player_client;
 mod player_manager;
 mod services;
 mod utils;
-
-fn get_players(conn: &Connection) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let proxy = conn.with_proxy("org.freedesktop.DBus", "/", Duration::from_millis(5000));
-
-    let (names,): (Vec<String>,) = proxy.method_call("org.freedesktop.DBus", "ListNames", ())?;
-
-    let players: Vec<String> = names
-        .iter()
-        .filter(|name| name.contains(BASE_INTERFACE))
-        .fold(vec![], |mut a, elem| {
-            a.push(strip_until_match(BASE_INTERFACE, elem));
-            a
-        });
-
-    Ok(players)
-}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: arg handling with clap
@@ -42,9 +24,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         event_bus.run();
     });
 
+    let dbus_service = Arc::new(DBusService::new());
+
     let actors: Vec<Arc<dyn Runnable>> = vec![
-        Arc::new(DBusMonitor::new(event_bus_handle.clone())),
-        Arc::new(PlayerManager::new(event_bus_handle.clone())),
+        Arc::new(DBusMonitor::new(
+            event_bus_handle.clone(),
+            dbus_service.clone(),
+        )),
+        Arc::new(PlayerManager::new(
+            event_bus_handle.clone(),
+            dbus_service.clone(),
+        )),
         Arc::new(Display::new(event_bus_handle.clone())),
     ];
 

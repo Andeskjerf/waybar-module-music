@@ -1,6 +1,6 @@
 use bincode::{Decode, Encode};
 use dbus::{
-    arg::{RefArg, Variant},
+    arg::{PropMap, RefArg, Variant},
     Message,
 };
 
@@ -125,6 +125,14 @@ impl MprisMetadata {
             }
         }
 
+        result
+    }
+
+    pub fn from_dbus_propmap(player_id: String, map: PropMap) -> Self {
+        let mut result = MprisMetadata::new(player_id);
+        for (key, value) in map {
+            result.set_field(&key, Variant(value.box_clone()));
+        }
         result
     }
 }
