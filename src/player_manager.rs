@@ -77,7 +77,7 @@ impl PlayerManager {
             let player = lock.get_mut(&playback_state.player_id);
 
             match player {
-                Some(player) => player.update_plaback_state(playback_state),
+                Some(player) => player.update_playback_state(playback_state),
                 None => {
                     println!("got playback update for unknown player ID");
                     continue;

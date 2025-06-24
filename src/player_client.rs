@@ -62,7 +62,7 @@ impl PlayerClient {
         self.publish_state();
     }
 
-    pub fn update_plaback_state(&mut self, playback_state: MprisPlayback) {
+    pub fn update_playback_state(&mut self, playback_state: MprisPlayback) {
         self.playback_state = Some(playback_state);
         self.publish_state();
     }
