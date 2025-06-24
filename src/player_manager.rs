@@ -12,19 +12,6 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-/* APPROACHES
-
-so: PlayerManager needs to do a few things.
-- we need to parse any matched signals coming in from DBus
-- we need to create player clients, or objects, whatever, that hold onto the last known state for each player
-
-- should PlayerManager deal with them in its own struct?
-- should we spawn new threads with each player client, and let them handle the incoming data from PlayerManager?
-
-- finally, we need to draw it all somehow
-- i'm imagining a display thread that listens to events on an event bus
-*/
-
 pub struct PlayerManager {
     players: Arc<Mutex<HashMap<String, PlayerClient>>>,
     event_bus: EventBusHandle,
