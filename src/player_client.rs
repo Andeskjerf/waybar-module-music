@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use bincode::config;
 
 use crate::{
@@ -7,15 +9,12 @@ use crate::{
     },
 };
 
-const INTERFACE_PATH: &str = "/org/mpris/MediaPlayer2";
-pub const BASE_INTERFACE: &str = "org.mpris.MediaPlayer2";
-const INTERFACE_PLAYER: &str = "org.mpris.MediaPlayer2.Player";
-
 #[derive(Debug)]
 pub struct PlayerClient {
     player_name: String,
     metadata: MprisMetadata,
     playback_state: Option<MprisPlayback>,
+    pub last_updated: u64,
     // does this make sense?
     // to let the player object itself report its state, or should the manager do that?
     event_bus: EventBusHandle,
@@ -27,6 +26,7 @@ impl PlayerClient {
             event_bus,
             player_name: player_name.to_owned(),
             metadata,
+            last_updated: 0,
             playback_state: None,
         }
     }
@@ -35,7 +35,19 @@ impl PlayerClient {
         &self.player_name
     }
 
-    fn publish_state(&self) {
+    pub fn playing(&self) -> bool {
+        self.playback_state
+            .clone()
+            .map(|elem| elem.is_playing())
+            .unwrap_or(false)
+    }
+
+    pub fn publish_state(&mut self) {
+        self.last_updated = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("failed to get current timestamp")
+            .as_secs();
+
         match bincode::encode_to_vec(
             PlayerState::from_mpris_data(self.metadata.clone(), self.playback_state.clone()),
             config::standard(),
@@ -59,5 +71,3 @@ impl PlayerClient {
         self.publish_state();
     }
 }
-
-

@@ -15,6 +15,13 @@ impl MprisPlayback {
         }
     }
 
+    pub fn is_playing(&self) -> bool {
+        self.playing
+            .clone()
+            .map(|elem| elem == "Playing")
+            .unwrap_or(false)
+    }
+
     pub fn new_with_playing(player_id: String, playing: String) -> Self {
         Self {
             player_id,

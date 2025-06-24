@@ -4,6 +4,7 @@ use std::time::Duration;
 use dbus::{
     arg::PropMap,
     blocking::{stdintf::org_freedesktop_dbus::Properties, Connection},
+    message::MatchRule,
 };
 
 use crate::models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback};

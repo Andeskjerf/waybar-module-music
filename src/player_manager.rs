@@ -64,26 +64,42 @@ impl PlayerManager {
 
             let mut lock = players.lock().unwrap();
             let player_id = playback_state.player_id.clone();
-            let player = lock.get_mut(&player_id);
 
-            match player {
-                Some(player) => player.update_playback_state(playback_state),
-                None => {
-                    if let Ok(metadata) = self.dbus_service.query_metadata(&player_id) {
-                        let mut player = PlayerClient::new(
+            if !lock.contains_key(&player_id) {
+                if let Ok(metadata) = self.dbus_service.query_metadata(&player_id) {
+                    lock.insert(
+                        player_id.clone(),
+                        PlayerClient::new(
                             self.event_bus.clone(),
                             &metadata.player_id.clone(),
                             metadata,
-                        );
-                        player.update_playback_state(playback_state);
-                        lock.insert(player_id.clone(), player);
-                    } else {
-                        println!(
-                            "got playback update for unknown player ID, and failed to query player"
-                        );
-                    }
+                        ),
+                    );
+                } else {
+                    println!(
+                        "got playback update for unknown player ID, and failed to query player"
+                    );
+                    continue;
                 }
-            };
+            }
+
+            let player = lock.get_mut(&player_id).unwrap();
+            player.update_playback_state(playback_state);
+
+            if !player.playing() {
+                let (player_id, _) =
+                    lock.iter()
+                        .fold((String::new(), 0u64), |(player_id, ts), (key, value)| {
+                            if value.playing() && value.last_updated > ts {
+                                (key.clone(), value.last_updated)
+                            } else {
+                                (player_id, ts)
+                            }
+                        });
+                if let Some(player) = lock.get_mut(&player_id) {
+                    player.publish_state();
+                }
+            }
         }
     }
 
