@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use actors::{dbus_monitor::DBusMonitor, runnable::Runnable};
+use actors::{dbus_monitor::DBusMonitor, display::Display, runnable::Runnable};
 use dbus::blocking::Connection;
 use effects::marquee::Marquee;
 use effects::text_effect::TextEffect;
@@ -48,42 +48,12 @@ fn sanitize_title(title: String, artist: &str) -> String {
     title
 }
 
-fn print(player: &PlayerClient, marquee: &mut TextEffect) -> Result<(), Box<dyn Error>> {
-    let icon = "icon";
-
-    let artist = "artist";
-
-    let title = "title";
-    // let icon = match player.playing()? {
-    //     true => "",
-    //     false => "",
-    // };
-
-    // let artist = match player.artist() {
-    //     Ok(t) => t,
-    //     Err(err) => return Err(format!("unable to get artist, err == {err}").into()),
-    // };
-
-    // let title = match player.title() {
-    //     Ok(t) => sanitize_title(t, &artist),
-    //     Err(err) => return Err(format!("unable to get title, err == {err}").into()),
-    // };
-
-    let formatted = if title.is_empty() && artist.is_empty() {
-        "No data".to_owned()
-    } else {
-        format!("{} - {}", artist, marquee.draw(&title))
-    };
-
-    println!("[ {icon} ] {formatted}");
-    Ok(())
-}
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_bus: Arc<Mutex<EventBus>> = Arc::new(Mutex::new(EventBus::new()));
     let actors: Vec<Arc<dyn Runnable>> = vec![
         Arc::new(DBusMonitor::new(Arc::clone(&event_bus))),
         Arc::new(PlayerManager::new(Arc::clone(&event_bus))),
+        Arc::new(Display::new(Arc::clone(&event_bus))),
     ];
 
     let mut handles = vec![];
@@ -95,6 +65,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _ = handle.join();
     }
 
+    Ok(())
+
     // TODO: arg handling with clap
     // TODO: events, like sending signal to play/pause active player
     // TODO: logging
@@ -104,35 +76,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //     .iter()
     //     .map(|p| PlayerClient::new(&conn, p))
     //     .collect::<Vec<PlayerClient>>();
-
-    // hmmm... maybe hacky?
-    // we need to hold onto when the effect was previously run, so we can time it
-    // easy and maybe hacky solution for now is to simply lift state up here
-    let max_width = 20;
-    let apply_effects_ms = 200;
-    let mut marquee =
-        TextEffect::new(apply_effects_ms).with_effect(Box::new(Marquee::new(max_width, true)));
-
-    let mut active_player: Option<&PlayerClient> = None;
-    const SLEEP_MS: u64 = 100;
-    loop {
-        std::thread::sleep(Duration::from_millis(SLEEP_MS));
-
-        // TODO: smarter check for last playing?
-        // currently, the positioning of elements in the vec is static
-        // so certain players will always take priority for printing if played at the same time
-        // for p in &players {
-        //     if p.playing()? {
-        //         active_player = Some(p);
-        //     }
-        // }
-
-        if active_player.is_none() {
-            continue;
-        }
-        let active_player =
-            active_player.expect("unable to get active_player despite it being Some?");
-
-        print(active_player, &mut marquee).expect("failed to print");
-    }
 }

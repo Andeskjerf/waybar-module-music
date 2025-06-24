@@ -4,10 +4,10 @@ use super::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback};
 
 #[derive(Debug, Clone, Encode, Decode, PartialEq)]
 pub struct PlayerState {
-    artist: String,
-    album: String,
-    title: String,
-    playing: Option<bool>,
+    pub artist: String,
+    pub album: String,
+    pub title: String,
+    pub playing: Option<bool>,
 }
 
 impl PlayerState {

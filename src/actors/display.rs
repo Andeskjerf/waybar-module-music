@@ -1,0 +1,112 @@
+use bincode::config;
+
+use crate::{
+    effects::{marquee::Marquee, text_effect::TextEffect},
+    event_bus::{EventBus, EventType},
+    models::player_state::PlayerState,
+};
+
+use super::runnable::Runnable;
+use std::{
+    sync::{Arc, Mutex},
+    thread::{self},
+    time::Duration,
+};
+
+pub struct Display {
+    player_state: Arc<Mutex<Option<PlayerState>>>,
+    event_bus: Arc<Mutex<EventBus>>,
+}
+
+impl Display {
+    pub fn new(event_bus: Arc<Mutex<EventBus>>) -> Self {
+        Self {
+            player_state: Arc::new(Mutex::new(None)),
+            event_bus,
+        }
+    }
+
+    fn init_threads(self: Arc<Self>) {
+        {
+            let display = Arc::clone(&self);
+            let player_state = Arc::clone(&self.player_state);
+            thread::spawn(move || {
+                display.listen_player_state(player_state);
+            });
+        }
+        {
+            let display = Arc::clone(&self);
+            let player_state = Arc::clone(&self.player_state);
+            thread::spawn(move || {
+                display.display(player_state);
+            });
+        }
+    }
+
+    fn listen_player_state(&self, player_state: Arc<Mutex<Option<PlayerState>>>) {
+        let rx = self
+            .event_bus
+            .lock()
+            .unwrap()
+            .subscribe(EventType::PlayerStateChanged);
+
+        loop {
+            let msg = rx.recv();
+            let (state, _): (PlayerState, usize) = match msg {
+                Ok(encoded) => {
+                    bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
+                }
+                Err(err) => {
+                    println!("failed to decode message in Display!\n----\n{err}");
+                    continue;
+                }
+            };
+
+            *player_state.lock().unwrap() = Some(state);
+        }
+    }
+
+    fn display(&self, player_state: Arc<Mutex<Option<PlayerState>>>) {
+        let max_width = 20;
+        let apply_effects_ms = 200;
+        let mut marquee =
+            TextEffect::new(apply_effects_ms).with_effect(Box::new(Marquee::new(max_width, true)));
+
+        const SLEEP_MS: u64 = 100;
+        loop {
+            std::thread::sleep(Duration::from_millis(SLEEP_MS));
+            let lock = player_state.lock().unwrap();
+
+            if lock.is_none() {
+                println!("[ = ] No activity");
+                continue;
+            }
+
+            let lock = lock.as_ref().unwrap();
+
+            let icon = match lock.playing.unwrap_or(false) {
+                true => "",
+                false => "",
+            };
+
+            let artist = &lock.artist;
+            let title = &lock.title;
+
+            let formatted = if title.is_empty() && artist.is_empty() {
+                "No data".to_owned()
+            } else {
+                format!("{} - {}", artist, marquee.draw(title))
+            };
+
+            println!("[ {icon} ] {formatted}");
+        }
+    }
+}
+
+impl Runnable for Display {
+    fn run(self: std::sync::Arc<Self>) -> std::thread::JoinHandle<()> {
+        thread::spawn(move || {
+            self.init_threads();
+        })
+    }
+}
