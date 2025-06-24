@@ -1,5 +1,5 @@
 pkgname=waybar-module-music-git
-pkgver=0.1.0
+pkgver=0.1.0_r70.4717f3f
 pkgrel=1
 pkgdesc='A Waybar module to show & control the current MPRIS media players state'
 arch=('x86_64')
@@ -8,7 +8,7 @@ license=('GPL3')
 depends=('dbus')
 makedepends=('rust' 'git')
 optdepends=('waybar: for integration with Waybar')
-source=("${pkgname}::git+https://github.com/Andeskjerf/waybar-module-music.git")
+source=("${pkgname}::git+ssh://git@github.com/Andeskjerf/waybar-module-music.git")
 sha256sums=('SKIP')
 provides=('waybar-module-music')
 conflicts=('waybar-module-music')
