@@ -41,25 +41,19 @@ impl PlayerClient {
         &self.player_name
     }
 
-    fn encode_player_state(&self) -> Option<Vec<u8>> {
+    fn publish_state(&self) {
         match bincode::encode_to_vec(
             PlayerState::from_mpris_data(self.metadata.clone(), self.playback_state.clone()),
             config::standard(),
         ) {
-            Ok(encoded) => Some(encoded),
-            Err(err) => {
-                println!("failed to encode player state\n\n{err}");
-                None
-            }
-        }
-    }
-
-    fn publish_state(&self) {
-        if let Some(state) = self.encode_player_state() {
-            self.event_bus
+            Ok(encoded) => self
+                .event_bus
                 .lock()
                 .unwrap()
-                .publish(EventType::PlayerStateChanged, state);
+                .publish(EventType::PlayerStateChanged, encoded),
+            Err(err) => {
+                println!("failed to encode player state, skipping publish\n\n{err}");
+            }
         }
     }
 
