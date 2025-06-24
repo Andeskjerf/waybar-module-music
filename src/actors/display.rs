@@ -101,7 +101,6 @@ impl Display {
                 false => "",
             };
 
-            let player_id = &lock.player_id;
             let artist = &lock.artist;
             let title = &lock.title;
 
@@ -115,8 +114,7 @@ impl Display {
                 )
             };
 
-            // println!("[ {icon} ] {formatted}");
-            println!("[ {:?} ] {formatted}", player_id);
+            println!("[ {icon} ] {formatted}");
         }
     }
 }
