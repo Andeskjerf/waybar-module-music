@@ -77,6 +77,30 @@ impl Display {
         title
     }
 
+    fn get_class(&self) -> &str {
+        let lock = self.player_state.lock().unwrap();
+        if let Some(state) = &(*lock) {
+            if let Some(playing) = state.playing {
+                if playing {
+                    return "playing";
+                } else {
+                    return "paused";
+                }
+            }
+        }
+
+        "n/a"
+    }
+
+    /// Create the final output JSON, in the format that Waybar expects
+    fn format_json_output(&self, text: &str) -> String {
+        let class = self.get_class();
+        format!(
+            "{{\"text\": \"{}\", \"tooltip\": \"{}\", \"class\": \"{}\", \"alt\": \"{}\"}}",
+            text, "", class, ""
+        )
+    }
+
     fn display(&self, player_state: Arc<Mutex<Option<PlayerState>>>) {
         let max_width = 20;
         let apply_effects_ms = 200;
@@ -90,19 +114,19 @@ impl Display {
             let lock = player_state.lock().unwrap();
 
             if lock.is_none() {
-                println!("[ = ] No activity");
+                println!("{}", self.format_json_output("[ = ] No activity"));
                 continue;
             }
 
-            let lock = lock.as_ref().unwrap();
+            let player_state = lock.as_ref().unwrap();
 
-            let icon = match lock.playing.unwrap_or(false) {
+            let icon = match player_state.playing.unwrap_or(false) {
                 true => "",
                 false => "",
             };
 
-            let artist = &lock.artist;
-            let title = &lock.title;
+            let artist = &player_state.artist;
+            let title = &player_state.title;
 
             let formatted = if title.is_empty() && artist.is_empty() {
                 "No data".to_owned()
@@ -114,7 +138,12 @@ impl Display {
                 )
             };
 
-            println!("[ {icon} ] {formatted}");
+            drop(lock);
+
+            println!(
+                "{}",
+                self.format_json_output(&format!("[ {icon} ] {formatted}"))
+            )
         }
     }
 }
