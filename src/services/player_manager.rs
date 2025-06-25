@@ -30,16 +30,13 @@ impl PlayerManager {
     }
 
     fn init_listener_threads(self: Arc<Self>) {
-        {
-            let player_manager = Arc::clone(&self);
-            let players = Arc::clone(&player_manager.players);
-            thread::spawn(move || player_manager.listen_playback_changed(players));
-        }
-        {
-            let player_manager = Arc::clone(&self);
-            let players = Arc::clone(&player_manager.players);
-            thread::spawn(move || player_manager.listen_song_changed(players));
-        }
+        let player_manager = Arc::clone(&self);
+        let players = Arc::clone(&player_manager.players);
+        thread::spawn(move || player_manager.listen_playback_changed(players));
+
+        let player_manager = Arc::clone(&self);
+        let players = Arc::clone(&player_manager.players);
+        thread::spawn(move || player_manager.listen_song_changed(players));
     }
 
     fn listen_playback_changed(
