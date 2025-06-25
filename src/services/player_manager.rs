@@ -1,11 +1,12 @@
 use bincode::config;
 
 use crate::{
-    actors::runnable::Runnable,
     event_bus::{EventBusHandle, EventType},
     interfaces::dbus_client::DBusClient,
-    models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
-    player_client::PlayerClient,
+    models::{
+        mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback, player_client::PlayerClient,
+    },
+    services::runnable::Runnable,
 };
 use std::{
     collections::HashMap,

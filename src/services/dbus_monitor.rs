@@ -89,7 +89,6 @@ impl DBusMonitor {
             .with_member("PropertiesChanged");
 
         // TODO: could maybe do something smart with this token
-        // let event_bus = Arc::clone(&self.event_bus);
         let event_bus = self.event_bus.clone();
         let token = match conn.add_match(rule, move |_: (), _, msg| {
             DBusMonitor::handle_on_match(msg, event_bus.clone())

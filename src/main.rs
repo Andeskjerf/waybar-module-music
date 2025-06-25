@@ -1,17 +1,16 @@
 use std::{sync::Arc, thread};
 
-use actors::{dbus_monitor::DBusMonitor, display::Display, runnable::Runnable};
 use event_bus::EventBus;
 use interfaces::dbus_client::DBusClient;
-use player_manager::PlayerManager;
+use services::{
+    dbus_monitor::DBusMonitor, display::Display, player_manager::PlayerManager, runnable::Runnable,
+};
 
-mod actors;
 mod effects;
 mod event_bus;
 mod interfaces;
 mod models;
-mod player_client;
-mod player_manager;
+mod services;
 mod utils;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
