@@ -3,9 +3,9 @@ use bincode::config;
 use crate::{
     actors::runnable::Runnable,
     event_bus::{EventBusHandle, EventType},
+    interfaces::dbus_client::DBusClient,
     models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
     player_client::PlayerClient,
-    services::dbus_service::DBusService,
 };
 use std::{
     collections::HashMap,
@@ -15,15 +15,15 @@ use std::{
 
 pub struct PlayerManager {
     players: Arc<Mutex<HashMap<String, PlayerClient>>>,
-    dbus_service: Arc<DBusService>,
+    dbus_client: Arc<DBusClient>,
     event_bus: EventBusHandle,
 }
 
 impl PlayerManager {
-    pub fn new(event_bus: EventBusHandle, dbus_service: Arc<DBusService>) -> Self {
+    pub fn new(event_bus: EventBusHandle, dbus_client: Arc<DBusClient>) -> Self {
         Self {
             players: Arc::new(Mutex::new(HashMap::new())),
-            dbus_service,
+            dbus_client,
             event_bus,
         }
     }
@@ -66,7 +66,7 @@ impl PlayerManager {
             let player_id = playback_state.player_id.clone();
 
             if !lock.contains_key(&player_id) {
-                if let Ok(metadata) = self.dbus_service.query_metadata(&player_id) {
+                if let Ok(metadata) = self.dbus_client.query_metadata(&player_id) {
                     lock.insert(
                         player_id.clone(),
                         PlayerClient::new(self.event_bus.clone(), metadata),

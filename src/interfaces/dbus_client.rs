@@ -9,11 +9,11 @@ use dbus::{
 
 use crate::models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback};
 
-pub struct DBusService {
+pub struct DBusClient {
     conn: Connection,
 }
 
-impl DBusService {
+impl DBusClient {
     pub fn new() -> Self {
         Self {
             conn: Connection::new_session().expect("failed to create DBus connection"),
@@ -111,6 +111,6 @@ impl DBusService {
     }
 }
 
-unsafe impl Send for DBusService {}
+unsafe impl Send for DBusClient {}
 
-unsafe impl Sync for DBusService {}
+unsafe impl Sync for DBusClient {}

@@ -2,16 +2,16 @@ use std::{sync::Arc, thread};
 
 use actors::{dbus_monitor::DBusMonitor, display::Display, runnable::Runnable};
 use event_bus::EventBus;
+use interfaces::dbus_client::DBusClient;
 use player_manager::PlayerManager;
-use services::dbus_service::DBusService;
 
 mod actors;
 mod effects;
 mod event_bus;
+mod interfaces;
 mod models;
 mod player_client;
 mod player_manager;
-mod services;
 mod utils;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -24,16 +24,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         event_bus.run();
     });
 
-    let dbus_service = Arc::new(DBusService::new());
+    let dbus_client = Arc::new(DBusClient::new());
 
     let actors: Vec<Arc<dyn Runnable>> = vec![
         Arc::new(DBusMonitor::new(
             event_bus_handle.clone(),
-            dbus_service.clone(),
+            dbus_client.clone(),
         )),
         Arc::new(PlayerManager::new(
             event_bus_handle.clone(),
-            dbus_service.clone(),
+            dbus_client.clone(),
         )),
         Arc::new(Display::new(event_bus_handle.clone())),
     ];

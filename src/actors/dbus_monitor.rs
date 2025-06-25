@@ -9,25 +9,25 @@ use dbus::{blocking::Connection, message::MatchRule, Message};
 
 use crate::{
     event_bus::{EventBusHandle, EventType},
+    interfaces::dbus_client::DBusClient,
     models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
-    services::dbus_service::DBusService,
 };
 
 use super::runnable::Runnable;
 
 pub struct DBusMonitor {
     event_bus: EventBusHandle,
-    dbus_service: Arc<DBusService>,
+    dbus_client: Arc<DBusClient>,
 }
 
 // TODO: we also need to discover players when we run the program initially
 // who should handle that? the monitor, or a new actor?
 
 impl DBusMonitor {
-    pub fn new(event_bus: EventBusHandle, dbus_service: Arc<DBusService>) -> Self {
+    pub fn new(event_bus: EventBusHandle, dbus_client: Arc<DBusClient>) -> Self {
         Self {
             event_bus,
-            dbus_service,
+            dbus_client,
         }
     }
 
@@ -78,7 +78,7 @@ impl DBusMonitor {
         true
     }
 
-    // TODO: some of this should be handled by DBusService
+    // TODO: some of this should be handled by DBusClient
     pub fn begin_monitoring(&self) -> Result<(), Box<dyn std::error::Error>> {
         let conn = Connection::new_session()?;
 
