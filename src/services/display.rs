@@ -142,8 +142,12 @@ impl Display {
 
             match msg {
                 DisplayMessages::PlayerStateChanged(state) => {
-                    player_state = Some(state.clone());
-                    text_effect.override_last_drawn(state.title);
+                    if let Some(player_state) = player_state {
+                        if player_state.title != state.title {
+                            text_effect.override_last_drawn(state.title.clone());
+                        }
+                    }
+                    player_state = Some(state);
                     self.draw(&player_state, text_effect)
                 }
                 DisplayMessages::AnimationDue => self.draw(&player_state, text_effect),
