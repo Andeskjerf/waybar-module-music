@@ -51,20 +51,8 @@ impl Display {
 
         {
             let tx = tx.clone();
-            thread::spawn(move || loop {
-                let msg = match effect_rx.recv() {
-                    Ok(msg) => msg,
-                    Err(err) => {
-                        eprintln!("failed to recieve message from TextEffect\n{err}");
-                        continue;
-                    }
-                };
-
-                if msg {
-                    if let Err(err) = tx.send(DisplayMessages::AnimationDue) {
-                        eprintln!("failed to send DisplayMessage AnimationDue update\n{err}");
-                    }
-                }
+            thread::spawn(move || {
+                Display::listen_text_effect(tx, effect_rx);
             });
         }
 
@@ -86,6 +74,24 @@ impl Display {
 
             if let Err(err) = tx.send(DisplayMessages::PlayerStateChanged(state)) {
                 eprintln!("failed to send DisplayMessages\n{err}");
+            }
+        }
+    }
+
+    fn listen_text_effect(tx: Sender<DisplayMessages>, effect_rx: Receiver<bool>) {
+        loop {
+            let msg = match effect_rx.recv() {
+                Ok(msg) => msg,
+                Err(err) => {
+                    eprintln!("failed to recieve message from TextEffect\n{err}");
+                    continue;
+                }
+            };
+
+            if msg {
+                if let Err(err) = tx.send(DisplayMessages::AnimationDue) {
+                    eprintln!("failed to send DisplayMessage AnimationDue update\n{err}");
+                }
             }
         }
     }
@@ -136,7 +142,8 @@ impl Display {
 
             match msg {
                 DisplayMessages::PlayerStateChanged(state) => {
-                    player_state = Some(state);
+                    player_state = Some(state.clone());
+                    text_effect.override_last_drawn(state.title);
                     self.draw(&player_state, text_effect)
                 }
                 DisplayMessages::AnimationDue => self.draw(&player_state, text_effect),

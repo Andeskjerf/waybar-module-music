@@ -3,10 +3,12 @@ use super::effect::Effect;
 const PADDING: &str = "     ";
 
 pub struct Marquee {
+    text: String,
     current_pos: u16,
     max_width: u16,
     /// If the marquee effect should only apply if the length exceeds the max width
     on_exceeded: bool,
+    active: bool,
 }
 
 impl Marquee {
@@ -15,6 +17,8 @@ impl Marquee {
             current_pos: 0,
             max_width,
             on_exceeded,
+            active: false,
+            text: String::new(),
         }
     }
 }
@@ -43,5 +47,18 @@ impl Effect for Marquee {
         } else {
             result
         }
+    }
+
+    fn is_active(&self) -> bool {
+        self.active
+    }
+
+    fn update_active(&mut self) {
+        self.active = self.text.len() > self.max_width as usize
+    }
+
+    fn set_text(&mut self, text: String) {
+        self.text = text;
+        self.update_active();
     }
 }

@@ -11,26 +11,28 @@ use crate::effects::effect::Effect;
 
 pub struct TextEffect {
     last_drawn: String,
-    effects: Vec<Box<dyn Effect>>,
+    effects: Arc<Mutex<Vec<Box<dyn Effect>>>>,
     update_tick: Arc<Mutex<bool>>,
 }
 
 impl TextEffect {
     pub fn new(run_every_ms: u32) -> (Self, Receiver<bool>) {
         let update_tick = Arc::new(Mutex::new(false));
+        let effects = Arc::new(Mutex::new(vec![]));
         let (tx, rx) = mpsc::channel();
 
         {
             let update_tick = Arc::clone(&update_tick);
+            let effects = effects.clone();
             thread::spawn(move || {
-                TextEffect::check_if_due_for_drawing(run_every_ms, update_tick, tx)
+                TextEffect::check_if_due_for_drawing(run_every_ms, update_tick, effects, tx)
             });
         }
 
         (
             Self {
                 last_drawn: String::new(),
-                effects: vec![],
+                effects,
                 update_tick,
             },
             rx,
@@ -40,6 +42,7 @@ impl TextEffect {
     fn check_if_due_for_drawing(
         run_every_ms: u32,
         update_tick: Arc<Mutex<bool>>,
+        effects: Arc<Mutex<Vec<Box<dyn Effect>>>>,
         tx: Sender<bool>,
     ) {
         let mut time = SystemTime::now()
@@ -59,6 +62,16 @@ impl TextEffect {
                 continue;
             }
 
+            let should_update = effects
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|effect| effect.is_active());
+
+            if !should_update {
+                continue;
+            }
+
             // reset our timer if we're due for drawing
             time = now;
             if let Err(err) = tx.send(true) {
@@ -68,12 +81,24 @@ impl TextEffect {
         }
     }
 
-    pub fn with_effect(mut self, effect: Box<dyn Effect>) -> Self {
-        self.effects.push(effect);
+    pub fn with_effect(self, effect: Box<dyn Effect>) -> Self {
+        self.effects.lock().unwrap().push(effect);
         self
     }
 
+    pub fn override_last_drawn(&mut self, text: String) {
+        self.last_drawn = text;
+    }
+
     pub fn draw(&mut self, text: &str) -> String {
+        if self.last_drawn.is_empty() {
+            self.last_drawn = text.to_string();
+        }
+
+        for effect in self.effects.lock().unwrap().iter_mut() {
+            effect.set_text(text.to_string());
+        }
+
         let mut lock = self.update_tick.lock().unwrap();
         if !*lock {
             return self.last_drawn.clone();
@@ -83,7 +108,7 @@ impl TextEffect {
         drop(lock);
 
         let mut result = text.to_owned();
-        for effect in &mut self.effects {
+        for effect in self.effects.lock().unwrap().iter_mut() {
             result = effect.apply(result);
         }
         self.last_drawn = result.clone();
