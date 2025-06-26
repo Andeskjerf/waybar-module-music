@@ -7,11 +7,11 @@ pub struct Args {
     #[arg(short, long)]
     whitelist: Vec<String>,
 
-    /// Set the play icon
+    /// Set play icon
     #[arg(long, default_value_t = String::from(""))]
     play_icon: String,
 
-    /// Set the pause icon
+    /// Set pause icon
     #[arg(long, default_value_t = String::from(""))]
     pause_icon: String,
 
@@ -19,11 +19,11 @@ pub struct Args {
     #[arg(short, long, default_value_t = String::from("[ %icon% ] %artist% - %title%"))]
     format: String,
 
-    /// Pause before restarting marquee
+    /// Pause before restarting marquee, in ms
     #[arg(short, long, default_value_t = 0)]
     delay_on_loop: u32,
 
-    /// Animation update interval
+    /// Animation update interval, in ms
     #[arg(long, default_value_t = 200)]
     effect_speed: u32,
 
