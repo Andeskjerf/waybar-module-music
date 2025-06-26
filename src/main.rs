@@ -70,8 +70,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     let mut handles = vec![];
-    for actor in services {
-        handles.push(actor.run());
+    for service in services {
+        handles.push(service.run());
     }
 
     for handle in handles {

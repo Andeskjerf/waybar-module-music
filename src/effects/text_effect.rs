@@ -53,6 +53,7 @@ impl TextEffect {
             .as_millis();
 
         loop {
+            // FIXME: temporary until i've implemented a proper event based system for the effects
             thread::sleep(Duration::from_millis(50));
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
