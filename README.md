@@ -9,7 +9,7 @@ Built with Rust using event-driven architecture and D-Bus integration to monitor
 - **🔄 Real-time updates** - Instantly reflects media player state changes
 - **📱 Multi-player support** - Automatically switches between active players
 - **🎬 Marquee scrolling** - Long titles scroll smoothly within configurable width
-- **⚡ Resource efficient** - Zero CPU usage when idle, minimal memory footprint
+- **⚡ Resource efficient** - Zero CPU usage, minimal memory footprint
 - **🎨 Waybar integration** - JSON output with CSS classes for theming
 - **🎛️ Highly configurable** - Custom icons, formatting, text effects, and player filtering
 - **🔧 Media controls** - Play/pause/next/previous support *(coming soon)*
@@ -17,8 +17,7 @@ Built with Rust using event-driven architecture and D-Bus integration to monitor
 ## 🚀 Performance
 
 Unlike polling-based solutions, this module uses **event-driven architecture**:
-- **0% CPU when idle** (no media playing)
-- **<0.5% CPU when active** (with animations)
+- **~0% CPU usage**
 - **~500KB memory usage**
 
 ## 📦 Installation
@@ -141,7 +140,7 @@ The module provides CSS classes for theming in your Waybar stylesheet:
 
 **Available states:**
 - `.playing` - Media is currently playing
-- `.paused` - Media is paused  
+- `.paused` - Media is paused
 - `.stopped` - No active players or media
 
 ---
