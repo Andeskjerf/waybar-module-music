@@ -1,5 +1,5 @@
 use bincode::config;
-use log::{error, warn};
+use log::{error, info, warn};
 
 use crate::{
     event_bus::{EventBusHandle, EventType},
@@ -36,7 +36,7 @@ impl PlayerManager {
         }
     }
 
-    fn init_threads_and_listen(self: Arc<Self>) {
+    fn init_worker(self: Arc<Self>) {
         let (tx, rx) = mpsc::channel();
 
         {
@@ -57,6 +57,52 @@ impl PlayerManager {
             thread::spawn(move || PlayerManager::listen_song_changed(rx, tx));
         }
 
+        self.handle_events(rx);
+    }
+
+    // TODO: this and listen_song_changed could potentially be a generic function, very similar
+    fn listen_playback_changed(
+        subscription_rx: Receiver<Vec<u8>>,
+        tx: Sender<PlayerManagerMessage>,
+    ) {
+        loop {
+            let msg = subscription_rx.recv();
+            let (playback_state, _): (MprisPlayback, usize) = match msg {
+                Ok(encoded) => {
+                    bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
+                }
+                Err(err) => {
+                    warn!("failed to decode message in PlayerManager!\n----\n{err}");
+                    continue;
+                }
+            };
+
+            if let Err(err) = tx.send(PlayerManagerMessage::GotPlaybackState(playback_state)) {
+                warn!("failed to send playback update in PlayerManager\n{err}");
+            }
+        }
+    }
+
+    fn listen_song_changed(subscription_rx: Receiver<Vec<u8>>, tx: Sender<PlayerManagerMessage>) {
+        loop {
+            let msg = subscription_rx.recv();
+            let (metadata, _): (MprisMetadata, usize) = match msg {
+                Ok(encoded) => {
+                    bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
+                }
+                Err(err) => {
+                    warn!("failed to decode message in PlayerManager!\n----\n{err}");
+                    continue;
+                }
+            };
+
+            if let Err(err) = tx.send(PlayerManagerMessage::GotMetadata(metadata)) {
+                warn!("failed to send metadata message\n{err}");
+            }
+        }
+    }
+
+    fn handle_events(&self, rx: Receiver<PlayerManagerMessage>) {
         let mut players: HashMap<String, PlayerClient> = HashMap::new();
 
         loop {
@@ -102,71 +148,29 @@ impl PlayerManager {
 
                     // if the latest player is not playing, find the most recent one that is still playing and display that instead
                     if !player.playing() {
-                        let (player_id, _) = players.iter().fold(
-                            (String::new(), 0u64),
-                            |(player_id, ts), (key, value)| {
-                                if value.playing() && value.last_updated > ts {
-                                    (key.clone(), value.last_updated)
-                                } else {
-                                    (player_id, ts)
-                                }
-                            },
-                        );
-                        if let Some(player) = players.get_mut(&player_id) {
-                            player.publish_state();
-                        }
+                        self.set_most_recent_player_as_active(&mut players);
                     }
                 }
             };
         }
     }
 
-    fn listen_playback_changed(
-        subscription_rx: Receiver<Vec<u8>>,
-        tx: Sender<PlayerManagerMessage>,
-    ) {
-        loop {
-            let msg = subscription_rx.recv();
-            let (playback_state, _): (MprisPlayback, usize) = match msg {
-                Ok(encoded) => {
-                    bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
-                }
-                Err(err) => {
-                    warn!("failed to decode message in PlayerManager!\n----\n{err}");
-                    continue;
-                }
-            };
-
-            if let Err(err) = tx.send(PlayerManagerMessage::GotPlaybackState(playback_state)) {
-                warn!("failed to send playback update in PlayerManager\n{err}");
-            }
-        }
-    }
-
-    fn listen_song_changed(subscription_rx: Receiver<Vec<u8>>, tx: Sender<PlayerManagerMessage>) {
-        loop {
-            let msg = subscription_rx.recv();
-            let (metadata, _): (MprisMetadata, usize) = match msg {
-                Ok(encoded) => {
-                    bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
-                }
-                Err(err) => {
-                    warn!("failed to decode message in PlayerManager!\n----\n{err}");
-                    continue;
-                }
-            };
-
-            if let Err(err) = tx.send(PlayerManagerMessage::GotMetadata(metadata)) {
-                warn!("failed to send metadata message\n{err}");
-            }
-        }
+    fn set_most_recent_player_as_active(&self, players: &mut HashMap<String, PlayerClient>) {
+        if let Some((_, player)) = players
+            .iter_mut()
+            .filter(|(_, p)| p.playing())
+            .max_by_key(|(_, p)| p.last_updated)
+        {
+            player.publish_state();
+        };
     }
 }
 
 impl Runnable for PlayerManager {
     fn run(self: Arc<Self>) -> JoinHandle<()> {
         thread::spawn(move || {
-            self.init_threads_and_listen();
+            info!("starting PlayerManager thread");
+            self.init_worker();
         })
     }
 }
