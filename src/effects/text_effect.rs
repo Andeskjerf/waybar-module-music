@@ -4,7 +4,7 @@ use std::{
         Arc, Mutex,
     },
     thread,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use log::warn;
@@ -53,6 +53,7 @@ impl TextEffect {
             .as_millis();
 
         loop {
+            thread::sleep(Duration::from_millis(50));
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
