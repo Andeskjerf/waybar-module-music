@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 bincode = "2.0.1"
 dbus = "0.9.7"
+dirs = "6.0.0"
+log = "0.4.27"
+simplelog = "0.12.2"
