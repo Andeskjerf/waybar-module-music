@@ -30,7 +30,9 @@ impl Display {
         Self { event_bus }
     }
 
-    fn init_threads(self: Arc<Self>) {
+    fn init_worker(self: Arc<Self>) {
+        println!("{}", self.format_json_output("No activity", "stopped"));
+
         let (tx, rx) = mpsc::channel();
         {
             let tx = tx.clone();
@@ -96,6 +98,33 @@ impl Display {
         }
     }
 
+    fn listen_for_updates(&self, rx: Receiver<DisplayMessages>, text_effect: &mut TextEffect) {
+        let mut player_state: Option<PlayerState> = None;
+
+        loop {
+            let msg = match rx.recv() {
+                Ok(msg) => msg,
+                Err(err) => {
+                    eprintln!("failed to recieve message\n{err}");
+                    continue;
+                }
+            };
+
+            match msg {
+                DisplayMessages::PlayerStateChanged(state) => {
+                    if let Some(player_state) = player_state {
+                        if player_state.title != state.title {
+                            text_effect.override_last_drawn(state.title.clone());
+                        }
+                    }
+                    player_state = Some(state);
+                    self.draw(&player_state, text_effect)
+                }
+                DisplayMessages::AnimationDue => self.draw(&player_state, text_effect),
+            }
+        }
+    }
+
     /// If the artist name is leading the title, we remove the artist from the title
     fn sanitize_title(title: String, artist: &str) -> String {
         if title
@@ -125,34 +154,6 @@ impl Display {
             "{{\"text\": \"{}\", \"tooltip\": \"{}\", \"class\": \"{}\", \"alt\": \"{}\"}}",
             text, "", class, ""
         )
-    }
-
-    fn listen_for_updates(&self, rx: Receiver<DisplayMessages>, text_effect: &mut TextEffect) {
-        let mut player_state: Option<PlayerState> = None;
-
-        // TODO: only update display if there's a state change or time to run an effect
-        loop {
-            let msg = match rx.recv() {
-                Ok(msg) => msg,
-                Err(err) => {
-                    eprintln!("failed to recieve message\n{err}");
-                    continue;
-                }
-            };
-
-            match msg {
-                DisplayMessages::PlayerStateChanged(state) => {
-                    if let Some(player_state) = player_state {
-                        if player_state.title != state.title {
-                            text_effect.override_last_drawn(state.title.clone());
-                        }
-                    }
-                    player_state = Some(state);
-                    self.draw(&player_state, text_effect)
-                }
-                DisplayMessages::AnimationDue => self.draw(&player_state, text_effect),
-            }
-        }
     }
 
     fn draw(&self, player_state: &Option<PlayerState>, text_effect: &mut TextEffect) {
@@ -199,7 +200,7 @@ impl Display {
 impl Runnable for Display {
     fn run(self: Arc<Self>) -> std::thread::JoinHandle<()> {
         thread::spawn(move || {
-            self.init_threads();
+            self.init_worker();
         })
     }
 }
