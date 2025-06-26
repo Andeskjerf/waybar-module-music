@@ -111,7 +111,7 @@ impl EventBus {
                         Some(senders) => {
                             for sender in senders {
                                 if let Err(err) = sender.send(data.clone()) {
-                                    error!("failed to send data to subscribers. {err}");
+                                    error!("failed to send data to subscribers: {err}");
                                 }
                             }
                         }
@@ -127,7 +127,7 @@ impl EventBus {
                     let (tx, rx) = mpsc::channel();
                     self.senders.entry(event_type).or_default().push(tx);
                     if let Err(err) = response_tx.send(rx) {
-                        error!("failed to send receiver. {err}");
+                        error!("failed to send receiver: {err}");
                     }
                 }
             }

@@ -6,7 +6,7 @@ use std::{
 
 use bincode::config;
 use dbus::{blocking::Connection, message::MatchRule, Message};
-use log::{error, warn};
+use log::{error, info, warn};
 
 use crate::{
     event_bus::{EventBusHandle, EventType},
@@ -22,7 +22,7 @@ pub struct DBusMonitor {
 }
 
 // TODO: we also need to discover players when we run the program initially
-// who should handle that? the monitor, or a new actor?
+// who should handle that? the monitor, or a new service?
 
 impl DBusMonitor {
     pub fn new(event_bus: EventBusHandle, dbus_client: Arc<DBusClient>) -> Self {
@@ -32,6 +32,7 @@ impl DBusMonitor {
         }
     }
 
+    // TODO: the dbus client should handle parsing like this
     fn determine_event_type(msg: &Message) -> EventType {
         for elem in msg.iter_init() {
             if let Some(mut args) = elem.as_iter() {
@@ -74,7 +75,7 @@ impl DBusMonitor {
 
         match encoded {
             Ok(encoded) => event_bus.publish(event_type, encoded),
-            Err(err) => error!("failed to encode MPRIS data!\n----\n{err}"),
+            Err(err) => error!("failed to encode MPRIS data: {err}"),
         }
         true
     }
@@ -96,7 +97,7 @@ impl DBusMonitor {
         }) {
             Ok(token) => token,
             Err(err) => {
-                error!("DBusMonitor was unable to monitor MPRIS players!\n{err}");
+                error!("DBusMonitor was unable to monitor MPRIS players: {err}");
                 return Err(err.into());
             }
         };
@@ -104,7 +105,7 @@ impl DBusMonitor {
         loop {
             match conn.process(Duration::from_millis(1000)) {
                 Ok(res) => (),
-                Err(err) => warn!("failed to process DBus connection\n{err}"),
+                Err(err) => warn!("failed to process DBus connection: {err}"),
             }
         }
 
@@ -115,6 +116,7 @@ impl DBusMonitor {
 impl Runnable for DBusMonitor {
     fn run(self: Arc<Self>) -> JoinHandle<()> {
         thread::spawn(move || {
+            info!("starting DBusMonitor thread");
             let result = self.begin_monitoring();
         })
     }
