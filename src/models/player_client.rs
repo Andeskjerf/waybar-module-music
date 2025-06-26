@@ -31,7 +31,7 @@ impl PlayerClient {
 
     pub fn playing(&self) -> bool {
         self.playback_state
-            .clone()
+            .as_ref()
             .map(|elem| elem.is_playing())
             .unwrap_or(false)
     }
