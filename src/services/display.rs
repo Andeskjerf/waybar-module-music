@@ -1,5 +1,5 @@
 use bincode::config;
-use log::warn;
+use log::{error, info, warn};
 
 use crate::{
     effects::{marquee::Marquee, text_effect::TextEffect},
@@ -35,15 +35,14 @@ impl Display {
         println!("{}", self.format_json_output("No activity", "stopped"));
 
         let (tx, rx) = mpsc::channel();
-        {
+
+        if let Some(rx) = self.event_bus.subscribe(EventType::PlayerStateChanged) {
             let tx = tx.clone();
-            let event_rx = self
-                .event_bus
-                .subscribe(EventType::PlayerStateChanged)
-                .expect("failed to subscribe to PlayerStateChanged");
             thread::spawn(move || {
-                Display::listen_player_state(event_rx, tx);
+                Display::listen_player_state(rx, tx);
             });
+        } else {
+            error!("failed to subscribe to PlayerStateChanged listener");
         }
 
         let max_width = 20;
@@ -52,12 +51,9 @@ impl Display {
         let (text_effect, effect_rx) = TextEffect::new(apply_effects_ms);
         let mut text_effect = text_effect.with_effect(Box::new(Marquee::new(max_width, true)));
 
-        {
-            let tx = tx.clone();
-            thread::spawn(move || {
-                Display::listen_text_effect(tx, effect_rx);
-            });
-        }
+        thread::spawn(move || {
+            Display::listen_text_effect(tx, effect_rx);
+        });
 
         self.listen_for_updates(rx, &mut text_effect);
     }
@@ -70,13 +66,13 @@ impl Display {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
                 }
                 Err(err) => {
-                    warn!("failed to decode message in Display!\n----\n{err}");
+                    warn!("failed to decode message in Display: {err}");
                     continue;
                 }
             };
 
             if let Err(err) = tx.send(DisplayMessages::PlayerStateChanged(state)) {
-                warn!("failed to send DisplayMessages\n{err}");
+                warn!("failed to send DisplayMessages: {err}");
             }
         }
     }
@@ -86,14 +82,14 @@ impl Display {
             let msg = match effect_rx.recv() {
                 Ok(msg) => msg,
                 Err(err) => {
-                    warn!("failed to recieve message from TextEffect\n{err}");
+                    warn!("failed to recieve message from TextEffect: {err}");
                     continue;
                 }
             };
 
             if msg {
                 if let Err(err) = tx.send(DisplayMessages::AnimationDue) {
-                    warn!("failed to send DisplayMessage AnimationDue update\n{err}");
+                    warn!("failed to send DisplayMessage AnimationDue update: {err}");
                 }
             }
         }
@@ -106,7 +102,7 @@ impl Display {
             let msg = match rx.recv() {
                 Ok(msg) => msg,
                 Err(err) => {
-                    warn!("failed to recieve message\n{err}");
+                    warn!("failed to recieve message: {err}");
                     continue;
                 }
             };
@@ -146,7 +142,7 @@ impl Display {
             }
         }
 
-        "n/a"
+        "stopped"
     }
 
     /// Create the final output JSON, in the format that Waybar expects
@@ -201,6 +197,7 @@ impl Display {
 impl Runnable for Display {
     fn run(self: Arc<Self>) -> std::thread::JoinHandle<()> {
         thread::spawn(move || {
+            info!("starting Display worker");
             self.init_worker();
         })
     }
