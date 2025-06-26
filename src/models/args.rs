@@ -9,11 +9,11 @@ pub struct Args {
 
     /// Set play icon
     #[arg(long, default_value_t = String::from(""))]
-    play_icon: String,
+    pub play_icon: String,
 
     /// Set pause icon
     #[arg(long, default_value_t = String::from(""))]
-    pause_icon: String,
+    pub pause_icon: String,
 
     /// Format string
     #[arg(short, long, default_value_t = String::from("[ %icon% ] %artist% - %title%"))]
@@ -25,15 +25,15 @@ pub struct Args {
 
     /// Animation update interval, in ms
     #[arg(long, default_value_t = 200)]
-    effect_speed: u32,
+    pub effect_speed: u16,
 
     /// Max artist length before overflow
     #[arg(short, long, default_value_t = 0)]
-    artist_width: u32,
+    pub artist_width: u16,
 
     /// Max title length before overflow
     #[arg(short, long, default_value_t = 20)]
-    title_width: u32,
+    pub title_width: u16,
 
     /// Enable marquee scrolling on overflow
     #[arg(short, long, default_value_t = false)]

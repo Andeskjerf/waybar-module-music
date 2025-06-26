@@ -18,7 +18,7 @@ pub struct TextEffect {
 }
 
 impl TextEffect {
-    pub fn new(run_every_ms: u32) -> (Self, Receiver<bool>) {
+    pub fn new(run_every_ms: u16) -> (Self, Receiver<bool>) {
         let update_tick = Arc::new(Mutex::new(false));
         let effects = Arc::new(Mutex::new(vec![]));
         let (tx, rx) = mpsc::channel();
@@ -42,7 +42,7 @@ impl TextEffect {
     }
 
     fn check_if_due_for_drawing(
-        run_every_ms: u32,
+        run_every_ms: u16,
         update_tick: Arc<Mutex<bool>>,
         effects: Arc<Mutex<Vec<Box<dyn Effect>>>>,
         tx: Sender<bool>,
@@ -62,7 +62,7 @@ impl TextEffect {
 
             // check if we're due for new draw call
             let elapsed = now - time;
-            if (elapsed as u32) < run_every_ms {
+            if (elapsed as u16) < run_every_ms {
                 continue;
             }
 

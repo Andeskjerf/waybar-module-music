@@ -4,7 +4,7 @@ use log::{error, info, warn};
 use crate::{
     effects::{marquee::Marquee, text_effect::TextEffect},
     event_bus::{EventBusHandle, EventType},
-    models::player_state::PlayerState,
+    models::{args::Args, player_state::PlayerState},
     utils::strip_until_match,
 };
 
@@ -23,12 +23,13 @@ enum DisplayMessages {
 }
 
 pub struct Display {
+    args: Arc<Args>,
     event_bus: EventBusHandle,
 }
 
 impl Display {
-    pub fn new(event_bus: EventBusHandle) -> Self {
-        Self { event_bus }
+    pub fn new(args: Arc<Args>, event_bus: EventBusHandle) -> Self {
+        Self { args, event_bus }
     }
 
     fn init_worker(self: Arc<Self>) {
@@ -45,17 +46,30 @@ impl Display {
             error!("failed to subscribe to PlayerStateChanged listener");
         }
 
-        let max_width = 20;
-        let apply_effects_ms = 200;
+        // TODO: figure out something smart for enabling the text effect on the artist too
+        let (title_effect, effect_rx) = TextEffect::new(self.args.effect_speed);
+        let title_effect =
+            title_effect.with_effect(Box::new(Marquee::new(self.args.title_width, true)));
 
-        let (text_effect, effect_rx) = TextEffect::new(apply_effects_ms);
-        let mut text_effect = text_effect.with_effect(Box::new(Marquee::new(max_width, true)));
+        {
+            let tx = tx.clone();
+            thread::spawn(move || {
+                Display::listen_text_effect(tx, effect_rx);
+            });
+        }
 
-        thread::spawn(move || {
-            Display::listen_text_effect(tx, effect_rx);
-        });
+        let (artist_effect, effect_rx) = TextEffect::new(self.args.effect_speed);
+        let artist_effect =
+            artist_effect.with_effect(Box::new(Marquee::new(self.args.artist_width, true)));
 
-        self.listen_for_updates(rx, &mut text_effect);
+        {
+            let tx = tx.clone();
+            thread::spawn(move || {
+                Display::listen_text_effect(tx, effect_rx);
+            });
+        }
+
+        self.listen_for_updates(rx, artist_effect, title_effect);
     }
 
     fn listen_player_state(rx: Receiver<Vec<u8>>, tx: Sender<DisplayMessages>) {
@@ -95,7 +109,12 @@ impl Display {
         }
     }
 
-    fn listen_for_updates(&self, rx: Receiver<DisplayMessages>, text_effect: &mut TextEffect) {
+    fn listen_for_updates(
+        &self,
+        rx: Receiver<DisplayMessages>,
+        mut artist_effect: TextEffect,
+        mut title_effect: TextEffect,
+    ) {
         let mut player_state: Option<PlayerState> = None;
 
         loop {
@@ -111,13 +130,15 @@ impl Display {
                 DisplayMessages::PlayerStateChanged(state) => {
                     if let Some(player_state) = player_state {
                         if player_state.title != state.title {
-                            text_effect.override_last_drawn(state.title.clone());
+                            title_effect.override_last_drawn(state.title.clone());
                         }
                     }
                     player_state = Some(state);
-                    self.draw(&player_state, text_effect)
+                    self.draw(&player_state, &mut artist_effect, &mut title_effect)
                 }
-                DisplayMessages::AnimationDue => self.draw(&player_state, text_effect),
+                DisplayMessages::AnimationDue => {
+                    self.draw(&player_state, &mut artist_effect, &mut title_effect)
+                }
             }
         }
     }
@@ -153,7 +174,12 @@ impl Display {
         )
     }
 
-    fn draw(&self, player_state: &Option<PlayerState>, text_effect: &mut TextEffect) {
+    fn draw(
+        &self,
+        player_state: &Option<PlayerState>,
+        artist_effect: &mut TextEffect,
+        title_effect: &mut TextEffect,
+    ) {
         let player_state = match player_state {
             Some(state) => state,
             None => {
@@ -163,8 +189,8 @@ impl Display {
         };
 
         let icon = match player_state.playing.unwrap_or(false) {
-            true => "",
-            false => "",
+            true => &self.args.pause_icon,
+            false => &self.args.play_icon,
         };
 
         let artist = &player_state.artist;
@@ -178,9 +204,9 @@ impl Display {
                 if artist.is_empty() {
                     String::new()
                 } else {
-                    format!("{} - ", artist)
+                    format!("{} - ", artist_effect.draw(artist))
                 },
-                text_effect.draw(&Display::sanitize_title(title.clone(), artist))
+                title_effect.draw(&Display::sanitize_title(title.clone(), artist))
             )
         };
 

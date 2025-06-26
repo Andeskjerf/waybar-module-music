@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: events, like sending signal to play/pause active player
     init_logger()?;
 
-    let args = Args::parse();
+    let args = Arc::new(Args::parse());
 
     let (event_bus, event_bus_handle) = EventBus::new();
     thread::spawn(move || {
@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             event_bus_handle.clone(),
             dbus_client.clone(),
         )),
-        Arc::new(Display::new(event_bus_handle.clone())),
+        Arc::new(Display::new(args.clone(), event_bus_handle.clone())),
     ];
 
     let mut handles = vec![];
