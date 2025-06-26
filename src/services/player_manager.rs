@@ -10,7 +10,7 @@ use crate::{
     services::runnable::Runnable,
 };
 use std::{
-    collections::HashMap,
+    collections::{hash_map::Entry, HashMap},
     sync::{
         mpsc::{self, Receiver, Sender},
         Arc,
@@ -39,22 +39,18 @@ impl PlayerManager {
     fn init_worker(self: Arc<Self>) {
         let (tx, rx) = mpsc::channel();
 
-        {
-            let rx = self
-                .event_bus
-                .subscribe(EventType::PlaybackChanged)
-                .unwrap();
+        if let Some(rx) = self.event_bus.subscribe(EventType::PlaybackChanged) {
             let tx = tx.clone();
             thread::spawn(move || PlayerManager::listen_playback_changed(rx, tx));
+        } else {
+            error!("failed to spawn listener for playback changes");
         }
 
-        {
-            let rx = self
-                .event_bus
-                .subscribe(EventType::PlayerSongChanged)
-                .unwrap();
-            let tx = tx.clone();
+        if let Some(rx) = self.event_bus.subscribe(EventType::PlayerSongChanged) {
+            let tx = tx;
             thread::spawn(move || PlayerManager::listen_song_changed(rx, tx));
+        } else {
+            error!("failed to spawn listener for song changes");
         }
 
         self.handle_events(rx);
@@ -72,13 +68,13 @@ impl PlayerManager {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
                 }
                 Err(err) => {
-                    warn!("failed to decode message in PlayerManager!\n----\n{err}");
+                    warn!("failed to decode message in PlayerManager: {err}");
                     continue;
                 }
             };
 
             if let Err(err) = tx.send(PlayerManagerMessage::GotPlaybackState(playback_state)) {
-                warn!("failed to send playback update in PlayerManager\n{err}");
+                warn!("failed to send playback update in PlayerManager: {err}");
             }
         }
     }
@@ -91,13 +87,13 @@ impl PlayerManager {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
                 }
                 Err(err) => {
-                    warn!("failed to decode message in PlayerManager!\n----\n{err}");
+                    warn!("failed to decode message in PlayerManager: {err}");
                     continue;
                 }
             };
 
             if let Err(err) = tx.send(PlayerManagerMessage::GotMetadata(metadata)) {
-                warn!("failed to send metadata message\n{err}");
+                warn!("failed to send metadata message: {err}");
             }
         }
     }
@@ -109,21 +105,18 @@ impl PlayerManager {
             let msg: PlayerManagerMessage = match rx.recv() {
                 Ok(msg) => msg,
                 Err(err) => {
-                    warn!("failed to recv PlayerManagerMessage\n{err}");
+                    warn!("failed to recv PlayerManagerMessage: {err}");
                     continue;
                 }
             };
 
             match msg {
                 PlayerManagerMessage::GotMetadata(mpris_metadata) => {
-                    let id = &mpris_metadata.player_id;
-                    match players.get_mut(id) {
-                        Some(player) => player.update_metadata(mpris_metadata),
-                        None => {
-                            players.insert(
-                                id.clone(),
-                                PlayerClient::new(self.event_bus.clone(), mpris_metadata),
-                            );
+                    let player_id = mpris_metadata.player_id.clone();
+                    match players.entry(player_id) {
+                        Entry::Occupied(mut e) => e.get_mut().update_metadata(mpris_metadata),
+                        Entry::Vacant(e) => {
+                            e.insert(PlayerClient::new(self.event_bus.clone(), mpris_metadata));
                         }
                     }
                 }
@@ -143,12 +136,16 @@ impl PlayerManager {
                         }
                     }
 
-                    let player = players.get_mut(id).unwrap();
-                    player.update_playback_state(mpris_playback);
+                    if let Some(player) = players.get_mut(id) {
+                        player.update_playback_state(mpris_playback);
 
-                    // if the latest player is not playing, find the most recent one that is still playing and display that instead
-                    if !player.playing() {
-                        self.set_most_recent_player_as_active(&mut players);
+                        // if the latest player is not playing, find the most recent one that is still playing and display that instead
+                        if !player.playing() {
+                            self.set_most_recent_player_as_active(&mut players);
+                        }
+                    } else {
+                        error!("failed to get player during PlaybackState update");
+                        continue;
                     }
                 }
             };
