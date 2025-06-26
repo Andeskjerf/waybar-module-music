@@ -79,7 +79,7 @@ impl TextEffect {
             // reset our timer if we're due for drawing
             time = now;
             if let Err(err) = tx.send(true) {
-                warn!("failed to send TextEffect update tick over channel\n{err}");
+                warn!("failed to send TextEffect update tick over channel: {err}");
             }
             *update_tick.lock().unwrap() = true;
         }
