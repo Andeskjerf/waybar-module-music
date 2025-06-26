@@ -1,5 +1,6 @@
 use bincode::{Decode, Encode};
 use dbus::Message;
+use log::{error, warn};
 
 #[derive(Debug, Default, Clone, Encode, Decode, PartialEq)]
 pub struct MprisPlayback {
@@ -37,20 +38,20 @@ impl MprisPlayback {
                 if let Some(kv) = args.collect::<Vec<_>>().chunks(2).next() {
                     if let (Some(key), Some(value)) = (kv[0].as_str(), kv[1].as_str()) {
                         if key != "PlaybackStatus" {
-                            println!("tried to create MprisPlayback but message does not conform to expected format");
+                            warn!("tried to create MprisPlayback but message does not conform to expected format");
                             return result;
                         }
                         result.playing = Some(value.to_string());
                         return result;
                     } else {
-                        println!("got unexpected key-value pair, types do not conform to expected format");
+                        warn!("got unexpected key-value pair, types do not conform to expected format");
                         return result;
                     }
                 }
             };
         }
 
-        println!("got to end of MprisPlayback constructor without returning during construction, this should not happen");
+        error!("got to end of MprisPlayback constructor without returning during construction, this should not happen");
         result
     }
 }

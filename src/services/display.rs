@@ -1,4 +1,5 @@
 use bincode::config;
+use log::warn;
 
 use crate::{
     effects::{marquee::Marquee, text_effect::TextEffect},
@@ -69,13 +70,13 @@ impl Display {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
                 }
                 Err(err) => {
-                    println!("failed to decode message in Display!\n----\n{err}");
+                    warn!("failed to decode message in Display!\n----\n{err}");
                     continue;
                 }
             };
 
             if let Err(err) = tx.send(DisplayMessages::PlayerStateChanged(state)) {
-                eprintln!("failed to send DisplayMessages\n{err}");
+                warn!("failed to send DisplayMessages\n{err}");
             }
         }
     }
@@ -85,14 +86,14 @@ impl Display {
             let msg = match effect_rx.recv() {
                 Ok(msg) => msg,
                 Err(err) => {
-                    eprintln!("failed to recieve message from TextEffect\n{err}");
+                    warn!("failed to recieve message from TextEffect\n{err}");
                     continue;
                 }
             };
 
             if msg {
                 if let Err(err) = tx.send(DisplayMessages::AnimationDue) {
-                    eprintln!("failed to send DisplayMessage AnimationDue update\n{err}");
+                    warn!("failed to send DisplayMessage AnimationDue update\n{err}");
                 }
             }
         }
@@ -105,7 +106,7 @@ impl Display {
             let msg = match rx.recv() {
                 Ok(msg) => msg,
                 Err(err) => {
-                    eprintln!("failed to recieve message\n{err}");
+                    warn!("failed to recieve message\n{err}");
                     continue;
                 }
             };

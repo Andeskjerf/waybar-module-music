@@ -1,6 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use bincode::config;
+use log::warn;
 
 use crate::{
     event_bus::{EventBusHandle, EventType},
@@ -50,7 +51,7 @@ impl PlayerClient {
                 .event_bus
                 .publish(EventType::PlayerStateChanged, encoded),
             Err(err) => {
-                println!("failed to encode player state, skipping publish\n\n{err}");
+                warn!("failed to encode player state, skipping publish\n\n{err}");
             }
         }
     }

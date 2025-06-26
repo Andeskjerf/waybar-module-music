@@ -1,4 +1,5 @@
 use bincode::config;
+use log::{error, warn};
 
 use crate::{
     event_bus::{EventBusHandle, EventType},
@@ -62,7 +63,7 @@ impl PlayerManager {
             let msg: PlayerManagerMessage = match rx.recv() {
                 Ok(msg) => msg,
                 Err(err) => {
-                    eprintln!("failed to recv PlayerManagerMessage\n{err}");
+                    warn!("failed to recv PlayerManagerMessage\n{err}");
                     continue;
                 }
             };
@@ -89,7 +90,7 @@ impl PlayerManager {
                                 PlayerClient::new(self.event_bus.clone(), metadata),
                             );
                         } else {
-                            eprintln!(
+                            error!(
                                 "got playback update for unknown player ID, and failed to query player"
                             );
                             continue;
@@ -131,13 +132,13 @@ impl PlayerManager {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
                 }
                 Err(err) => {
-                    println!("failed to decode message in PlayerManager!\n----\n{err}");
+                    warn!("failed to decode message in PlayerManager!\n----\n{err}");
                     continue;
                 }
             };
 
             if let Err(err) = tx.send(PlayerManagerMessage::GotPlaybackState(playback_state)) {
-                eprintln!("failed to send playback update in PlayerManager\n{err}");
+                warn!("failed to send playback update in PlayerManager\n{err}");
             }
         }
     }
@@ -150,13 +151,13 @@ impl PlayerManager {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
                 }
                 Err(err) => {
-                    println!("failed to decode message in PlayerManager!\n----\n{err}");
+                    warn!("failed to decode message in PlayerManager!\n----\n{err}");
                     continue;
                 }
             };
 
             if let Err(err) = tx.send(PlayerManagerMessage::GotMetadata(metadata)) {
-                eprintln!("failed to send metadata message\n{err}");
+                warn!("failed to send metadata message\n{err}");
             }
         }
     }

@@ -6,6 +6,7 @@ use std::{
 
 use bincode::config;
 use dbus::{blocking::Connection, message::MatchRule, Message};
+use log::{error, warn};
 
 use crate::{
     event_bus::{EventBusHandle, EventType},
@@ -47,7 +48,7 @@ impl DBusMonitor {
             };
         }
 
-        println!("got to end of message iteration without finding event type and without error, this should not happen");
+        error!("got to end of message iteration without finding event type and without error, this should not happen");
         EventType::ParseError
     }
 
@@ -61,11 +62,11 @@ impl DBusMonitor {
                 bincode::encode_to_vec(MprisPlayback::from_dbus_message(msg), config::standard())
             }
             EventType::ParseError => {
-                println!("failed to parse message. skipping");
+                warn!("failed to parse message. skipping");
                 return false;
             }
             EventType::Unknown(found_arg) => {
-                println!("got unknown event with name '{found_arg}'. skipping");
+                warn!("got unknown event with name '{found_arg}'. skipping");
                 return false;
             }
             _ => return false, // ignore other messages
@@ -73,7 +74,7 @@ impl DBusMonitor {
 
         match encoded {
             Ok(encoded) => event_bus.publish(event_type, encoded),
-            Err(err) => panic!("failed to encode MPRIS data!\n----\n{err}"),
+            Err(err) => error!("failed to encode MPRIS data!\n----\n{err}"),
         }
         true
     }
@@ -94,13 +95,16 @@ impl DBusMonitor {
             DBusMonitor::handle_on_match(msg, event_bus.clone())
         }) {
             Ok(token) => token,
-            Err(err) => panic!("DBusMonitor was unable to monitor MPRIS players!\n{err}"),
+            Err(err) => {
+                error!("DBusMonitor was unable to monitor MPRIS players!\n{err}");
+                return Err(err.into());
+            }
         };
 
         loop {
             match conn.process(Duration::from_millis(1000)) {
                 Ok(res) => (),
-                Err(err) => println!("failed to process DBus connection\n{err}"),
+                Err(err) => warn!("failed to process DBus connection\n{err}"),
             }
         }
 
@@ -111,7 +115,7 @@ impl DBusMonitor {
 impl Runnable for DBusMonitor {
     fn run(self: Arc<Self>) -> JoinHandle<()> {
         thread::spawn(move || {
-            let _ = self.begin_monitoring();
+            let result = self.begin_monitoring();
         })
     }
 }

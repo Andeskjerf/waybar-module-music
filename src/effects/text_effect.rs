@@ -7,6 +7,8 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use log::warn;
+
 use crate::effects::effect::Effect;
 
 pub struct TextEffect {
@@ -75,7 +77,7 @@ impl TextEffect {
             // reset our timer if we're due for drawing
             time = now;
             if let Err(err) = tx.send(true) {
-                eprintln!("failed to send TextEffect update tick over channel\n{err}");
+                warn!("failed to send TextEffect update tick over channel\n{err}");
             }
             *update_tick.lock().unwrap() = true;
         }
