@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bincode = "2.0.1"
+clap = { version = "4.5.40", features = ["derive"] }
 dbus = "0.9.7"
 dirs = "6.0.0"
 log = "0.4.27"

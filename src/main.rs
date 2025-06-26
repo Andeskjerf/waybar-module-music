@@ -4,8 +4,10 @@ use std::{
     thread,
 };
 
+use clap::Parser;
 use event_bus::EventBus;
 use interfaces::dbus_client::DBusClient;
+use models::args::Args;
 use services::{
     dbus_monitor::DBusMonitor, display::Display, player_manager::PlayerManager, runnable::Runnable,
 };
@@ -47,8 +49,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: make text effects not poll constantly, use channels & events to know if effects are active or not
     // TODO: arg handling with clap
     // TODO: events, like sending signal to play/pause active player
-    // TODO: logging
     init_logger()?;
+
+    let args = Args::parse();
 
     let (event_bus, event_bus_handle) = EventBus::new();
     thread::spawn(move || {
