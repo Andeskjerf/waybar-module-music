@@ -18,27 +18,36 @@ mod models;
 mod services;
 mod utils;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // TODO: arg handling with clap
-    // TODO: events, like sending signal to play/pause active player
-    // TODO: logging
-    let cache = dirs::cache_dir().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "could not get user's cache directory",
-        )
-    })?;
+fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
+    let app_cache = dirs::cache_dir()
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "could not get user's cache directory",
+            )
+        })?
+        .join("waybar-module-music");
 
-    let app_cache_dir = cache.join("waybar-module-music");
-    fs::create_dir(&app_cache_dir)?;
+    match fs::create_dir(&app_cache) {
+        Ok(_) => (),
+        Err(err) => eprintln!("{err}"),
+    };
 
-    let log_path = app_cache_dir.join("app.log");
+    let log_path = app_cache.join("app.log");
 
     CombinedLogger::init(vec![WriteLogger::new(
         log::LevelFilter::Debug,
         Config::default(),
         File::create(log_path)?,
     )])?;
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // TODO: arg handling with clap
+    // TODO: events, like sending signal to play/pause active player
+    // TODO: logging
+    init_logger()?;
 
     let (event_bus, event_bus_handle) = EventBus::new();
     thread::spawn(move || {
