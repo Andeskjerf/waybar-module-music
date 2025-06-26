@@ -1,4 +1,6 @@
-use std::{collections::HashMap, sync::mpsc};
+use std::{collections::HashMap, fmt::Display, sync::mpsc};
+
+use log::{debug, error, info, warn};
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub enum EventType {
@@ -7,6 +9,22 @@ pub enum EventType {
     PlaybackChanged,
     ParseError,
     Unknown(String),
+}
+
+impl Display for EventType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                EventType::PlayerStateChanged => "PlayerStateChanged",
+                EventType::PlayerSongChanged => "PlayerSongChanged",
+                EventType::PlaybackChanged => "PlaybackChanged",
+                EventType::ParseError => "ParseError",
+                EventType::Unknown(_) => "Unknown",
+            }
+        )
+    }
 }
 
 pub enum EventBusMessage {
@@ -20,6 +38,22 @@ pub enum EventBusMessage {
     },
 }
 
+impl Display for EventBusMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (msg_type, event_type) = match self {
+            EventBusMessage::Publish {
+                event_type,
+                data: _,
+            } => ("Publish", event_type),
+            EventBusMessage::Subscribe {
+                event_type,
+                response_tx: _,
+            } => ("Subscribe", event_type),
+        };
+        write!(f, "{msg_type}: {event_type}")
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct EventBusHandle {
     tx: mpsc::Sender<EventBusMessage>,
@@ -28,7 +62,9 @@ pub struct EventBusHandle {
 impl EventBusHandle {
     pub fn publish(&self, event_type: EventType, data: Vec<u8>) {
         let msg = EventBusMessage::Publish { event_type, data };
-        let _ = self.tx.send(msg);
+        if let Err(err) = self.tx.send(msg) {
+            error!("failed to publish message on bus: {err}");
+        }
     }
 
     pub fn subscribe(&self, event_type: EventType) -> Option<mpsc::Receiver<Vec<u8>>> {
@@ -66,12 +102,21 @@ impl EventBus {
     }
 
     pub fn run(mut self) {
+        info!("starting EventBus thread");
         while let Ok(msg) = self.rx.recv() {
+            debug!("{msg}");
             match msg {
                 EventBusMessage::Publish { event_type, data } => {
-                    if let Some(senders) = self.senders.get(&event_type) {
-                        for sender in senders {
-                            let _ = sender.send(data.clone());
+                    match self.senders.get(&event_type) {
+                        Some(senders) => {
+                            for sender in senders {
+                                if let Err(err) = sender.send(data.clone()) {
+                                    error!("failed to send data to subscribers. {err}");
+                                }
+                            }
+                        }
+                        None => {
+                            warn!("tried to get subscriber with type '{event_type}' but none found")
                         }
                     }
                 }
@@ -81,7 +126,9 @@ impl EventBus {
                 } => {
                     let (tx, rx) = mpsc::channel();
                     self.senders.entry(event_type).or_default().push(tx);
-                    let _ = response_tx.send(rx);
+                    if let Err(err) = response_tx.send(rx) {
+                        error!("failed to send receiver. {err}");
+                    }
                 }
             }
         }
