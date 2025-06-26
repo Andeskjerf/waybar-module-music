@@ -9,47 +9,69 @@ use crate::{
 
 use super::runnable::Runnable;
 use std::{
-    sync::{Arc, Mutex},
+    sync::{
+        mpsc::{self, Receiver, Sender},
+        Arc,
+    },
     thread::{self},
-    time::Duration,
 };
 
+enum DisplayMessages {
+    PlayerStateChanged(PlayerState),
+    AnimationDue,
+}
+
 pub struct Display {
-    player_state: Arc<Mutex<Option<PlayerState>>>,
     event_bus: EventBusHandle,
 }
 
 impl Display {
     pub fn new(event_bus: EventBusHandle) -> Self {
-        Self {
-            player_state: Arc::new(Mutex::new(None)),
-            event_bus,
-        }
+        Self { event_bus }
     }
 
     fn init_threads(self: Arc<Self>) {
+        let (tx, rx) = mpsc::channel();
         {
-            let display = Arc::clone(&self);
-            let player_state = Arc::clone(&self.player_state);
+            let tx = tx.clone();
+            let event_rx = self
+                .event_bus
+                .subscribe(EventType::PlayerStateChanged)
+                .expect("failed to subscribe to PlayerStateChanged");
             thread::spawn(move || {
-                display.listen_player_state(player_state);
+                Display::listen_player_state(event_rx, tx);
             });
         }
+
+        let max_width = 20;
+        let apply_effects_ms = 200;
+
+        let (text_effect, effect_rx) = TextEffect::new(apply_effects_ms);
+        let mut text_effect = text_effect.with_effect(Box::new(Marquee::new(max_width, true)));
+
         {
-            let display = Arc::clone(&self);
-            let player_state = Arc::clone(&self.player_state);
-            thread::spawn(move || {
-                display.display(player_state);
+            let tx = tx.clone();
+            thread::spawn(move || loop {
+                let msg = match effect_rx.recv() {
+                    Ok(msg) => msg,
+                    Err(err) => {
+                        eprintln!("failed to recieve message from TextEffect\n{err}");
+                        continue;
+                    }
+                };
+
+                if msg {
+                    if let Err(err) = tx.send(DisplayMessages::AnimationDue) {
+                        eprintln!("failed to send DisplayMessage AnimationDue update\n{err}");
+                    }
+                }
             });
         }
+
+        self.listen_for_updates(rx, &mut text_effect);
     }
 
-    fn listen_player_state(&self, player_state: Arc<Mutex<Option<PlayerState>>>) {
-        let rx = self
-            .event_bus
-            .subscribe(EventType::PlayerStateChanged)
-            .expect("failed to subscribe to PlayerStateChanged");
-
+    fn listen_player_state(rx: Receiver<Vec<u8>>, tx: Sender<DisplayMessages>) {
         loop {
             let msg = rx.recv();
             let (state, _): (PlayerState, usize) = match msg {
@@ -62,7 +84,9 @@ impl Display {
                 }
             };
 
-            *player_state.lock().unwrap() = Some(state);
+            if let Err(err) = tx.send(DisplayMessages::PlayerStateChanged(state)) {
+                eprintln!("failed to send DisplayMessages\n{err}");
+            }
         }
     }
 
@@ -77,15 +101,12 @@ impl Display {
         title
     }
 
-    fn get_class(&self) -> &str {
-        let lock = self.player_state.lock().unwrap();
-        if let Some(state) = &(*lock) {
-            if let Some(playing) = state.playing {
-                if playing {
-                    return "playing";
-                } else {
-                    return "paused";
-                }
+    fn get_class(&self, state: &PlayerState) -> &str {
+        if let Some(playing) = state.playing {
+            if playing {
+                return "playing";
+            } else {
+                return "paused";
             }
         }
 
@@ -93,69 +114,79 @@ impl Display {
     }
 
     /// Create the final output JSON, in the format that Waybar expects
-    fn format_json_output(&self, text: &str) -> String {
-        let class = self.get_class();
+    fn format_json_output(&self, text: &str, class: &str) -> String {
         format!(
             "{{\"text\": \"{}\", \"tooltip\": \"{}\", \"class\": \"{}\", \"alt\": \"{}\"}}",
             text, "", class, ""
         )
     }
 
-    fn display(&self, player_state: Arc<Mutex<Option<PlayerState>>>) {
-        let max_width = 20;
-        let apply_effects_ms = 200;
-        let mut marquee =
-            TextEffect::new(apply_effects_ms).with_effect(Box::new(Marquee::new(max_width, true)));
+    fn listen_for_updates(&self, rx: Receiver<DisplayMessages>, text_effect: &mut TextEffect) {
+        let mut player_state: Option<PlayerState> = None;
 
         // TODO: only update display if there's a state change or time to run an effect
         loop {
-            std::thread::sleep(Duration::from_millis(apply_effects_ms as u64));
-            let lock = player_state.lock().unwrap();
+            let msg = match rx.recv() {
+                Ok(msg) => msg,
+                Err(err) => {
+                    eprintln!("failed to recieve message\n{err}");
+                    continue;
+                }
+            };
 
-            if lock.is_none() {
-                // FIXME: not nice to have to drop the lock since we lock again in format_json_output
-                drop(lock);
-                println!("{}", self.format_json_output("Nothing happening"));
-                continue;
+            match msg {
+                DisplayMessages::PlayerStateChanged(state) => {
+                    player_state = Some(state);
+                    self.draw(&player_state, text_effect)
+                }
+                DisplayMessages::AnimationDue => self.draw(&player_state, text_effect),
             }
-
-            let player_state = lock.as_ref().unwrap();
-
-            let icon = match player_state.playing.unwrap_or(false) {
-                true => "",
-                false => "",
-            };
-
-            let artist = &player_state.artist;
-            let title = &player_state.title;
-
-            println!("{artist}");
-            let formatted = if title.is_empty() && artist.is_empty() {
-                "No data".to_owned()
-            } else {
-                format!(
-                    "{}{}",
-                    if artist.is_empty() {
-                        String::new()
-                    } else {
-                        format!("{} - ", artist)
-                    },
-                    marquee.draw(&Display::sanitize_title(title.clone(), artist))
-                )
-            };
-
-            drop(lock);
-
-            println!(
-                "{}",
-                self.format_json_output(&format!("[ {icon} ] {formatted}"))
-            )
         }
+    }
+
+    fn draw(&self, player_state: &Option<PlayerState>, text_effect: &mut TextEffect) {
+        let player_state = match player_state {
+            Some(state) => state,
+            None => {
+                println!("{}", self.format_json_output("Nothing playing", "stopped"));
+                return;
+            }
+        };
+
+        let icon = match player_state.playing.unwrap_or(false) {
+            true => "",
+            false => "",
+        };
+
+        let artist = &player_state.artist;
+        let title = &player_state.title;
+
+        let formatted = if title.is_empty() && artist.is_empty() {
+            "No data".to_owned()
+        } else {
+            format!(
+                "{}{}",
+                if artist.is_empty() {
+                    String::new()
+                } else {
+                    format!("{} - ", artist)
+                },
+                text_effect.draw(&Display::sanitize_title(title.clone(), artist))
+            )
+        };
+
+        println!(
+            "{}",
+            self.format_json_output(
+                &format!("[ {icon} ] {formatted}"),
+                self.get_class(player_state)
+            )
+        )
     }
 }
 
 impl Runnable for Display {
-    fn run(self: std::sync::Arc<Self>) -> std::thread::JoinHandle<()> {
+    fn run(self: Arc<Self>) -> std::thread::JoinHandle<()> {
         thread::spawn(move || {
             self.init_threads();
         })

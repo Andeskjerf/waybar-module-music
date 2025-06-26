@@ -71,8 +71,9 @@ usage: waybar-module-music [options]
 The module has the following states for CSS styling in Waybar
 
 ```
-"playing"
-"paused"
+"playing"       Something is playing
+"paused"        Something is paused
+"stopped"       Nothing has begun playing yet, no players
 ```
 
 
