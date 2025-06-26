@@ -30,10 +30,7 @@ fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
         })?
         .join("waybar-module-music");
 
-    match fs::create_dir(&app_cache) {
-        Ok(_) => (),
-        Err(err) => eprintln!("{err}"),
-    };
+    let _ = fs::create_dir(&app_cache);
 
     let log_path = app_cache.join("app.log");
 
