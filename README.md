@@ -71,8 +71,8 @@ waybar-module-music [OPTIONS]
 | `-h, --help` | Show help message | |
 | `-v, --version` | Show version | |
 | `-w, --whitelist "player1 player2"` | Only monitor specified players | All players |
-| `--play-icon <icon>` | Set play icon | `` |
-| `--pause-icon <icon>` | Set pause icon | `` |  
+| `--play-icon <icon>` | Set play icon | `` |
+| `--pause-icon <icon>` | Set pause icon | `` |
 | `--format <template>` | Format string (see below) | `[ %icon% ] %artist% - %title%` |
 | `--delay-on-loop <ms>` | Pause before restarting marquee | `0` |
 | `--effect-speed <ms>` | Animation update interval | `200` |
