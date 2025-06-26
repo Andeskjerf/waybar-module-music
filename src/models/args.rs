@@ -37,7 +37,7 @@ pub struct Args {
 
     /// Enable marquee scrolling on overflow
     #[arg(short, long, default_value_t = false)]
-    marquee: bool,
+    pub marquee: bool,
 
     /// Enable ellipsis (...) on overflow
     #[arg(long, default_value_t = false)]

@@ -48,8 +48,11 @@ impl Display {
 
         // TODO: figure out something smart for enabling the text effect on the artist too
         let (title_effect, effect_rx) = TextEffect::new(self.args.effect_speed);
-        let title_effect =
-            title_effect.with_effect(Box::new(Marquee::new(self.args.title_width, true)));
+        let title_effect = title_effect.with_effect(Box::new(Marquee::new(
+            self.args.title_width,
+            true,
+            self.args.marquee,
+        )));
 
         {
             let tx = tx.clone();
@@ -59,8 +62,11 @@ impl Display {
         }
 
         let (artist_effect, effect_rx) = TextEffect::new(self.args.effect_speed);
-        let artist_effect =
-            artist_effect.with_effect(Box::new(Marquee::new(self.args.artist_width, true)));
+        let artist_effect = artist_effect.with_effect(Box::new(Marquee::new(
+            self.args.artist_width,
+            true,
+            self.args.marquee,
+        )));
 
         {
             let tx = tx.clone();
