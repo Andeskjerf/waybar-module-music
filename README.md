@@ -142,3 +142,9 @@ The module provides CSS classes for theming in your Waybar stylesheet:
 - `.playing` - Media is currently playing
 - `.paused` - Media is paused
 - `.stopped` - No active players or media
+
+## 🔧 Troubleshooting
+
+You can find the log file at `~/.cache/waybar-module-music/app.log`
+
+Open an issue and include the contents of the log if you run into any problems.
