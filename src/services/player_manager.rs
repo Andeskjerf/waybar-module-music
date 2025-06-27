@@ -64,6 +64,7 @@ impl PlayerManager {
     ) {
         loop {
             let msg = subscription_rx.recv();
+            debug!("received playback update");
             let (playback_state, _): (MprisPlayback, usize) = match msg {
                 Ok(encoded) => {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
@@ -83,6 +84,7 @@ impl PlayerManager {
     fn listen_song_changed(subscription_rx: Receiver<Vec<u8>>, tx: Sender<PlayerManagerMessage>) {
         loop {
             let msg = subscription_rx.recv();
+            debug!("received metadata update");
             let (metadata, _): (MprisMetadata, usize) = match msg {
                 Ok(encoded) => {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
@@ -103,6 +105,7 @@ impl PlayerManager {
         let mut players: HashMap<String, PlayerClient> = HashMap::new();
 
         loop {
+            debug!("waiting for message");
             let msg: PlayerManagerMessage = match rx.recv() {
                 Ok(msg) => msg,
                 Err(err) => {

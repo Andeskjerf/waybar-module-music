@@ -6,7 +6,7 @@ use std::{
 
 use bincode::config;
 use dbus::{blocking::Connection, message::MatchRule, Message};
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 
 use crate::{
     event_bus::{EventBusHandle, EventType},
@@ -86,11 +86,14 @@ impl DBusMonitor {
         msg: &Message,
         event_bus: EventBusHandle,
     ) -> bool {
+        debug!("signal matched");
         if !DBusMonitor::should_handle_sender(args, dbus_client, msg) {
+            debug!("ignoring sender, not in whitelist");
             return true;
         }
 
         let event_type = DBusMonitor::determine_event_type(msg);
+        debug!("message event type: {event_type}");
         let encoded = match event_type {
             EventType::PlayerSongChanged => {
                 bincode::encode_to_vec(MprisMetadata::from_dbus_message(msg), config::standard())
@@ -100,13 +103,13 @@ impl DBusMonitor {
             }
             EventType::ParseError => {
                 warn!("failed to parse message. skipping");
-                return false;
+                return true;
             }
             EventType::Unknown(found_arg) => {
                 warn!("got unknown event with name '{found_arg}'. skipping");
-                return false;
+                return true;
             }
-            _ => return false, // ignore other messages
+            _ => return true, // ignore other messages
         };
 
         match encoded {

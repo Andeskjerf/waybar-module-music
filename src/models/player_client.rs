@@ -45,19 +45,21 @@ impl PlayerClient {
             .expect("failed to get current timestamp")
             .as_secs();
 
-        match bincode::encode_to_vec(
-            PlayerState::from_mpris_data(
-                self.player_name.clone(),
-                self.metadata.clone(),
-                self.playback_state.clone(),
-            ),
-            config::standard(),
+        match PlayerState::from_mpris_data(
+            self.player_name.clone(),
+            self.metadata.clone(),
+            self.playback_state.clone(),
         ) {
-            Ok(encoded) => self
-                .event_bus
-                .publish(EventType::PlayerStateChanged, encoded),
-            Err(err) => {
-                warn!("failed to encode player state, skipping publish\n\n{err}");
+            Some(state) => match bincode::encode_to_vec(state, config::standard()) {
+                Ok(encoded) => self
+                    .event_bus
+                    .publish(EventType::PlayerStateChanged, encoded),
+                Err(err) => {
+                    warn!("failed to encode player state, skipping publish\n\n{err}");
+                }
+            },
+            None => {
+                warn!("failed to construct PlayerState. did we get empty metadata? skipping publish: {:?}", self.metadata);
             }
         }
     }

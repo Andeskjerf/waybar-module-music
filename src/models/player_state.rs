@@ -35,16 +35,23 @@ impl PlayerState {
         player_name: String,
         metadata: MprisMetadata,
         playback: Option<MprisPlayback>,
-    ) -> Self {
+    ) -> Option<Self> {
         let player_id = metadata.player_id;
-        let artist = metadata.artist.first().unwrap().clone();
-        let album = metadata.album.unwrap();
-        let title = metadata.title.unwrap();
+        let artist = metadata.artist.first()?.clone();
+        let album = metadata.album?;
+        let title = metadata.title?;
         let playing = playback
             .unwrap_or_default()
             .playing
             .map(|elem| elem == "Playing");
 
-        PlayerState::new(player_id, player_name, artist, album, title, playing)
+        Some(PlayerState::new(
+            player_id,
+            player_name,
+            artist,
+            album,
+            title,
+            playing,
+        ))
     }
 }
