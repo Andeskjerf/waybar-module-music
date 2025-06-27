@@ -2,7 +2,7 @@ use bincode::config;
 use log::{error, info, warn};
 
 use crate::{
-    effects::{marquee::Marquee, text_effect::TextEffect},
+    effects::{ellipsis::Ellipsis, marquee::Marquee, text_effect::TextEffect},
     event_bus::{EventBusHandle, EventType},
     models::{args::Args, player_state::PlayerState},
 };
@@ -47,29 +47,6 @@ impl Display {
             error!("failed to subscribe to PlayerStateChanged listener");
         }
 
-        let mut fields = HashMap::new();
-
-        fields.insert(
-            "title",
-            TextEffect::new().with_effect(Box::new(Marquee::new(
-                self.args.title_width,
-                true,
-                self.args.marquee,
-            ))),
-        );
-
-        fields.insert(
-            "artist",
-            TextEffect::new().with_effect(Box::new(Marquee::new(
-                self.args.artist_width,
-                true,
-                self.args.marquee,
-            ))),
-        );
-
-        fields.insert("album", TextEffect::new());
-        fields.insert("player", TextEffect::new());
-
         {
             let tx = tx.clone();
             let effect_speed = self.args.effect_speed as u64;
@@ -78,7 +55,58 @@ impl Display {
             });
         }
 
-        self.listen_for_updates(rx, fields);
+        self.listen_for_updates(rx, self.init_fields());
+    }
+
+    fn init_fields(&self) -> HashMap<&str, TextEffect> {
+        let mut fields = HashMap::new();
+
+        // FIXME: I'm sure this could be done better
+        if self.args.marquee {
+            fields.insert(
+                "title",
+                TextEffect::new().with_effect(Box::new(Marquee::new(
+                    self.args.title_width,
+                    true,
+                    self.args.marquee,
+                ))),
+            );
+
+            fields.insert(
+                "artist",
+                TextEffect::new().with_effect(Box::new(Marquee::new(
+                    self.args.artist_width,
+                    true,
+                    self.args.marquee,
+                ))),
+            );
+        } else if self.args.ellipsis {
+            fields.insert(
+                "title",
+                TextEffect::new().with_effect(Box::new(Ellipsis::new(
+                    self.args.title_width,
+                    true,
+                    self.args.ellipsis,
+                ))),
+            );
+
+            fields.insert(
+                "artist",
+                TextEffect::new().with_effect(Box::new(Ellipsis::new(
+                    self.args.artist_width,
+                    true,
+                    self.args.ellipsis,
+                ))),
+            );
+        } else {
+            fields.insert("title", TextEffect::new());
+            fields.insert("artist", TextEffect::new());
+        }
+
+        fields.insert("album", TextEffect::new());
+        fields.insert("player", TextEffect::new());
+
+        fields
     }
 
     fn text_effect_timer(interval_ms: u64, tx: Sender<DisplayMessages>) {

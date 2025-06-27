@@ -41,5 +41,5 @@ pub struct Args {
 
     /// Enable ellipsis (...) on overflow
     #[arg(long, default_value_t = false)]
-    ellipsis: bool,
+    pub ellipsis: bool,
 }
