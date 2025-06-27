@@ -47,12 +47,18 @@ impl Display {
         }
 
         // TODO: figure out something smart for enabling the text effect on the artist too
+        // not ideal to let each effect handle its own internal timer, since we now get multiple updates
+        // for every effect
         let (title_effect, effect_rx) = TextEffect::new(self.args.effect_speed);
-        let title_effect = title_effect.with_effect(Box::new(Marquee::new(
-            self.args.title_width,
-            true,
-            self.args.marquee,
-        )));
+        let title_effect = if self.args.marquee && self.args.title_width > 0 {
+            title_effect.with_effect(Box::new(Marquee::new(
+                self.args.title_width,
+                true,
+                self.args.marquee,
+            )))
+        } else {
+            title_effect
+        };
 
         {
             let tx = tx.clone();
@@ -62,11 +68,15 @@ impl Display {
         }
 
         let (artist_effect, effect_rx) = TextEffect::new(self.args.effect_speed);
-        let artist_effect = artist_effect.with_effect(Box::new(Marquee::new(
-            self.args.artist_width,
-            true,
-            self.args.marquee,
-        )));
+        let artist_effect = if self.args.marquee && self.args.artist_width > 0 {
+            artist_effect.with_effect(Box::new(Marquee::new(
+                self.args.artist_width,
+                true,
+                self.args.marquee,
+            )))
+        } else {
+            artist_effect
+        };
 
         {
             let tx = tx.clone();
@@ -137,6 +147,9 @@ impl Display {
                     if let Some(player_state) = player_state {
                         if player_state.title != state.title {
                             title_effect.override_last_drawn(state.title.clone());
+                        }
+                        if player_state.artist != state.artist {
+                            artist_effect.override_last_drawn(state.artist.clone());
                         }
                     }
                     player_state = Some(state);

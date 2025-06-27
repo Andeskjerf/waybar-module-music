@@ -44,7 +44,6 @@ fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: make text effects not poll constantly, use channels & events to know if effects are active or not
-    // TODO: arg handling with clap
     // TODO: events, like sending signal to play/pause active player
     init_logger()?;
 
