@@ -51,7 +51,7 @@ impl Effect for Marquee {
     }
 
     fn update_active(&mut self) {
-        self.active = self.text.len() > self.max_width as usize
+        self.active = self.text.len() > self.max_width as usize && self.max_width > 0
     }
 
     fn set_text(&mut self, text: String) {
