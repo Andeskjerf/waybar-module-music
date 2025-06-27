@@ -49,7 +49,6 @@ Add to your Waybar config (`~/.config/waybar/config`):
     "format": "{}",
     "return-type": "json",
     "exec": "waybar-module-music",
-    "restart-interval": 0
   }
 }
 ```
