@@ -10,11 +10,13 @@ use crate::{
 
 use super::runnable::Runnable;
 use std::{
+    collections::HashMap,
     sync::{
         mpsc::{self, Receiver, Sender},
         Arc,
     },
     thread::{self},
+    time::Duration,
 };
 
 enum DisplayMessages {
@@ -46,46 +48,44 @@ impl Display {
             error!("failed to subscribe to PlayerStateChanged listener");
         }
 
-        // TODO: figure out something smart for enabling the text effect on the artist too
-        // not ideal to let each effect handle its own internal timer, since we now get multiple updates
-        // for every effect
-        let (title_effect, effect_rx) = TextEffect::new(self.args.effect_speed);
-        let title_effect = if self.args.marquee && self.args.title_width > 0 {
-            title_effect.with_effect(Box::new(Marquee::new(
+        let mut fields = HashMap::new();
+
+        fields.insert(
+            "title",
+            TextEffect::new().with_effect(Box::new(Marquee::new(
                 self.args.title_width,
                 true,
                 self.args.marquee,
-            )))
-        } else {
-            title_effect
-        };
+            ))),
+        );
 
-        {
-            let tx = tx.clone();
-            thread::spawn(move || {
-                Display::listen_text_effect(tx, effect_rx);
-            });
-        }
-
-        let (artist_effect, effect_rx) = TextEffect::new(self.args.effect_speed);
-        let artist_effect = if self.args.marquee && self.args.artist_width > 0 {
-            artist_effect.with_effect(Box::new(Marquee::new(
+        fields.insert(
+            "artist",
+            TextEffect::new().with_effect(Box::new(Marquee::new(
                 self.args.artist_width,
                 true,
                 self.args.marquee,
-            )))
-        } else {
-            artist_effect
-        };
+            ))),
+        );
 
         {
             let tx = tx.clone();
+            let effect_speed = self.args.effect_speed as u64;
             thread::spawn(move || {
-                Display::listen_text_effect(tx, effect_rx);
+                Display::text_effect_timer(effect_speed, tx);
             });
         }
 
-        self.listen_for_updates(rx, artist_effect, title_effect);
+        self.listen_for_updates(rx, fields);
+    }
+
+    fn text_effect_timer(interval_ms: u64, tx: Sender<DisplayMessages>) {
+        loop {
+            thread::sleep(Duration::from_millis(interval_ms));
+            if let Err(err) = tx.send(DisplayMessages::AnimationDue) {
+                warn!("failed to send AnimationDue message: {err}");
+            }
+        }
     }
 
     fn listen_player_state(rx: Receiver<Vec<u8>>, tx: Sender<DisplayMessages>) {
@@ -107,29 +107,10 @@ impl Display {
         }
     }
 
-    fn listen_text_effect(tx: Sender<DisplayMessages>, effect_rx: Receiver<bool>) {
-        loop {
-            let msg = match effect_rx.recv() {
-                Ok(msg) => msg,
-                Err(err) => {
-                    warn!("failed to recieve message from TextEffect: {err}");
-                    continue;
-                }
-            };
-
-            if msg {
-                if let Err(err) = tx.send(DisplayMessages::AnimationDue) {
-                    warn!("failed to send DisplayMessage AnimationDue update: {err}");
-                }
-            }
-        }
-    }
-
     fn listen_for_updates(
         &self,
         rx: Receiver<DisplayMessages>,
-        mut artist_effect: TextEffect,
-        mut title_effect: TextEffect,
+        mut fields: HashMap<&str, TextEffect>,
     ) {
         let mut player_state: Option<PlayerState> = None;
 
@@ -146,17 +127,28 @@ impl Display {
                 DisplayMessages::PlayerStateChanged(state) => {
                     if let Some(player_state) = player_state {
                         if player_state.title != state.title {
-                            title_effect.override_last_drawn(state.title.clone());
+                            match fields.get_mut("title") {
+                                Some(field) => field.override_last_drawn(state.title.clone()),
+                                None => error!("failed to get 'title' field"),
+                            }
                         }
                         if player_state.artist != state.artist {
-                            artist_effect.override_last_drawn(state.artist.clone());
+                            match fields.get_mut("artist") {
+                                Some(field) => field.override_last_drawn(state.artist.clone()),
+                                None => error!("failed to get 'artist' field"),
+                            }
                         }
                     }
                     player_state = Some(state);
-                    self.draw(&player_state, &mut artist_effect, &mut title_effect)
+                    self.draw(&player_state, &mut fields)
                 }
                 DisplayMessages::AnimationDue => {
-                    self.draw(&player_state, &mut artist_effect, &mut title_effect)
+                    if fields.iter().any(|(_, v)| v.has_active_effects()) {
+                        fields.iter_mut().for_each(|(_, v)| {
+                            v.should_redraw();
+                        });
+                        self.draw(&player_state, &mut fields)
+                    }
                 }
             }
         }
@@ -193,12 +185,7 @@ impl Display {
         )
     }
 
-    fn draw(
-        &self,
-        player_state: &Option<PlayerState>,
-        artist_effect: &mut TextEffect,
-        title_effect: &mut TextEffect,
-    ) {
+    fn draw(&self, player_state: &Option<PlayerState>, fields: &mut HashMap<&str, TextEffect>) {
         let player_state = match player_state {
             Some(state) => state,
             None => {
@@ -223,9 +210,12 @@ impl Display {
                 if artist.is_empty() {
                     String::new()
                 } else {
-                    format!("{} - ", artist_effect.draw(artist))
+                    format!("{} - ", fields.get_mut("artist").unwrap().draw(artist))
                 },
-                title_effect.draw(&Display::sanitize_title(title.clone(), artist))
+                fields
+                    .get_mut("title")
+                    .unwrap()
+                    .draw(&Display::sanitize_title(title.clone(), artist))
             )
         };
 

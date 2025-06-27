@@ -1,13 +1,4 @@
-use std::{
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Arc, Mutex,
-    },
-    thread,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
-
-use log::warn;
+use std::sync::{Arc, Mutex};
 
 use crate::effects::effect::Effect;
 
@@ -18,71 +9,27 @@ pub struct TextEffect {
 }
 
 impl TextEffect {
-    pub fn new(run_every_ms: u16) -> (Self, Receiver<bool>) {
+    pub fn new() -> Self {
         let update_tick = Arc::new(Mutex::new(false));
         let effects = Arc::new(Mutex::new(vec![]));
-        let (tx, rx) = mpsc::channel();
 
-        {
-            let update_tick = Arc::clone(&update_tick);
-            let effects = effects.clone();
-            thread::spawn(move || {
-                TextEffect::check_if_due_for_drawing(run_every_ms, update_tick, effects, tx)
-            });
+        Self {
+            last_drawn: String::new(),
+            effects,
+            update_tick,
         }
-
-        (
-            Self {
-                last_drawn: String::new(),
-                effects,
-                update_tick,
-            },
-            rx,
-        )
     }
 
-    fn check_if_due_for_drawing(
-        run_every_ms: u16,
-        update_tick: Arc<Mutex<bool>>,
-        effects: Arc<Mutex<Vec<Box<dyn Effect>>>>,
-        tx: Sender<bool>,
-    ) {
-        let mut time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
+    pub fn has_active_effects(&self) -> bool {
+        self.effects
+            .lock()
             .unwrap()
-            .as_millis();
+            .iter()
+            .any(|elem| elem.is_active())
+    }
 
-        loop {
-            // FIXME: temporary until i've implemented a proper event based system for the effects
-            thread::sleep(Duration::from_millis(50));
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_millis();
-
-            // check if we're due for new draw call
-            let elapsed = now - time;
-            if (elapsed as u16) < run_every_ms {
-                continue;
-            }
-
-            let should_update = effects
-                .lock()
-                .unwrap()
-                .iter()
-                .any(|effect| effect.is_active());
-
-            if !should_update {
-                continue;
-            }
-
-            // reset our timer if we're due for drawing
-            time = now;
-            if let Err(err) = tx.send(true) {
-                warn!("failed to send TextEffect update tick over channel: {err}");
-            }
-            *update_tick.lock().unwrap() = true;
-        }
+    pub fn should_redraw(&mut self) {
+        *self.update_tick.lock().unwrap() = true;
     }
 
     pub fn with_effect(self, effect: Box<dyn Effect>) -> Self {
