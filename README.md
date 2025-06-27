@@ -12,7 +12,6 @@ Built with Rust using event-driven architecture and D-Bus integration to monitor
 - **⚡ Resource efficient** - Zero CPU usage, minimal memory footprint
 - **🎨 Waybar integration** - JSON output with CSS classes for theming
 - **🎛️ Highly configurable** - Custom icons, formatting, text effects, and player filtering
-- **🔧 Media controls** - Play/pause/next/previous support *(coming soon)*
 
 ## 🚀 Performance
 
@@ -142,7 +141,3 @@ The module provides CSS classes for theming in your Waybar stylesheet:
 - `.playing` - Media is currently playing
 - `.paused` - Media is paused
 - `.stopped` - No active players or media
-
----
-
-<sub>**Why Rust?** Because when you want zero-cost abstractions, memory safety, and performance that doesn't compromise on features, Rust delivers. Also, because we can. 🦀</sub>
