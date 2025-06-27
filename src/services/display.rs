@@ -219,48 +219,42 @@ impl Display {
         player_state: &PlayerState,
         fields: &mut HashMap<&str, TextEffect>,
     ) -> String {
-        let icon = match player_state.playing.unwrap_or(false) {
-            true => &self.args.pause_icon,
-            false => &self.args.play_icon,
-        };
+        let replacements: HashMap<&str, String> = [
+            (
+                "icon",
+                match player_state.playing.unwrap_or(false) {
+                    true => self.args.pause_icon.clone(),
+                    false => self.args.play_icon.clone(),
+                },
+            ),
+            (
+                "title",
+                fields.get_mut("title").unwrap().draw(&player_state.title),
+            ),
+            (
+                "artist",
+                fields.get_mut("artist").unwrap().draw(&player_state.artist),
+            ),
+            (
+                "album",
+                fields.get_mut("album").unwrap().draw(&player_state.album),
+            ),
+            (
+                "player",
+                fields
+                    .get_mut("player")
+                    .unwrap()
+                    .draw(&player_state.player_name),
+            ),
+        ]
+        .into_iter()
+        .collect();
 
-        // FIXME: the fields shouldn't be missing, but I should still try to avoid unwrapping
-        let artist = fields.get_mut("artist").unwrap().draw(&player_state.artist);
-        let title = fields.get_mut("title").unwrap().draw(&player_state.title);
-        let album = fields.get_mut("album").unwrap().draw(&player_state.album);
-        let player = fields
-            .get_mut("player")
-            .unwrap()
-            .draw(&player_state.player_name);
-
-        let mut result = String::new();
-        let mut placeholder = String::new();
-        let mut add_next = false;
-
-        for c in self.args.format.chars() {
-            if add_next {
-                placeholder.push(c);
-                add_next = false;
-            } else if c != '%' && !placeholder.is_empty() {
-                placeholder.push(c);
-            } else if c != '%' {
-                result.push(c);
-            } else if c == '%' && !placeholder.is_empty() {
-                match placeholder.to_lowercase().as_str() {
-                    "icon" => result.push_str(icon),
-                    "title" => result.push_str(&title),
-                    "artist" => result.push_str(&artist),
-                    "album" => result.push_str(&album),
-                    "player" => result.push_str(&player),
-                    _ => error!("failed to parse placeholder: {placeholder}"),
-                }
-                placeholder.clear();
-            } else if c == '%' && placeholder.is_empty() {
-                add_next = true;
-            }
-        }
-
-        result
+        replacements
+            .iter()
+            .fold(self.args.format.clone(), |acc, (key, value)| {
+                acc.replace(&format!("%{key}%"), value)
+            })
     }
 
     fn draw(&self, player_state: &Option<PlayerState>, fields: &mut HashMap<&str, TextEffect>) {
