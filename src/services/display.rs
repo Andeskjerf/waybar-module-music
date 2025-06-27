@@ -65,38 +65,22 @@ impl Display {
         if self.args.marquee {
             fields.insert(
                 "title",
-                TextEffect::new().with_effect(Box::new(Marquee::new(
-                    self.args.title_width,
-                    true,
-                    self.args.marquee,
-                ))),
+                TextEffect::new().with_effect(Box::new(Marquee::new(self.args.title_width))),
             );
 
             fields.insert(
                 "artist",
-                TextEffect::new().with_effect(Box::new(Marquee::new(
-                    self.args.artist_width,
-                    true,
-                    self.args.marquee,
-                ))),
+                TextEffect::new().with_effect(Box::new(Marquee::new(self.args.artist_width))),
             );
         } else if self.args.ellipsis {
             fields.insert(
                 "title",
-                TextEffect::new().with_effect(Box::new(Ellipsis::new(
-                    self.args.title_width,
-                    true,
-                    self.args.ellipsis,
-                ))),
+                TextEffect::new().with_effect(Box::new(Ellipsis::new(self.args.title_width))),
             );
 
             fields.insert(
                 "artist",
-                TextEffect::new().with_effect(Box::new(Ellipsis::new(
-                    self.args.artist_width,
-                    true,
-                    self.args.ellipsis,
-                ))),
+                TextEffect::new().with_effect(Box::new(Ellipsis::new(self.args.artist_width))),
             );
         } else {
             fields.insert("title", TextEffect::new());
