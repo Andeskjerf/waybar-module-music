@@ -1,5 +1,5 @@
 use bincode::config;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 
 use crate::{
     event_bus::{EventBusHandle, EventType},
@@ -18,6 +18,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
+#[derive(Debug)]
 enum PlayerManagerMessage {
     GotMetadata(MprisMetadata),
     GotPlaybackState(MprisPlayback),
@@ -110,28 +111,46 @@ impl PlayerManager {
                 }
             };
 
+            debug!("{:?}", msg);
+
             match msg {
                 PlayerManagerMessage::GotMetadata(mpris_metadata) => {
                     let player_id = mpris_metadata.player_id.clone();
                     match players.entry(player_id.clone()) {
                         Entry::Occupied(mut e) => e.get_mut().update_metadata(mpris_metadata),
                         Entry::Vacant(e) => {
-                            e.insert(PlayerClient::new(
-                                self.dbus_client.query_mediaplayer_identity(&player_id).unwrap_or_else(|_| {error!("failed to query media player identity, defaulting to ERR"); String::from("ERR")}),
-                                self.event_bus.clone(),
-                                mpris_metadata,
-                            ));
+                            let identity = self.dbus_client.query_mediaplayer_identity(&player_id);
+                            match identity {
+                                Ok(identity) => e.insert(PlayerClient::new(
+                                    identity,
+                                    self.event_bus.clone(),
+                                    mpris_metadata,
+                                )),
+                                Err(err) => {
+                                    error!("failed to query media player identity, skipping message: {err}");
+                                    continue;
+                                }
+                            };
                         }
                     }
                 }
                 PlayerManagerMessage::GotPlaybackState(mpris_playback) => {
                     let id = &mpris_playback.player_id;
                     if !players.contains_key(id) {
+                        debug!("got playback state but player does not exist, attempting to query for metadata");
                         if let Ok(metadata) = self.dbus_client.query_metadata(id) {
-                            players.insert(
-                                id.clone(),
-                                PlayerClient::new(self.dbus_client.query_mediaplayer_identity(id).unwrap_or_else(|_| {error!("failed to query media player identity, defaulting to ERR"); String::from("ERR")}), self.event_bus.clone(), metadata),
-                            );
+                            debug!("metadata queried successfully: {:?}", metadata);
+                            let identity = self.dbus_client.query_mediaplayer_identity(id);
+                            match identity {
+                                Ok(identity) => players.insert(
+                                    id.clone(),
+                                    PlayerClient::new(identity, self.event_bus.clone(), metadata),
+                                ),
+                                Err(err) => {
+                                    error!("failed to query media player identity, skipping message: {err}");
+                                    continue;
+                                }
+                            };
                         } else {
                             error!(
                                 "got playback update for unknown player ID, and failed to query player"
