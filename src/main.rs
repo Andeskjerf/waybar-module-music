@@ -34,7 +34,7 @@ fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
     let log_path = app_cache.join("app.log");
 
     CombinedLogger::init(vec![WriteLogger::new(
-        log::LevelFilter::Debug,
+        log::LevelFilter::Info,
         Config::default(),
         File::create(log_path)?,
     )])?;
@@ -42,7 +42,6 @@ fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // TODO: make text effects not poll constantly, use channels & events to know if effects are active or not
     // TODO: events, like sending signal to play/pause active player
     init_logger()?;
 
