@@ -5,7 +5,6 @@ use crate::{
     effects::{marquee::Marquee, text_effect::TextEffect},
     event_bus::{EventBusHandle, EventType},
     models::{args::Args, player_state::PlayerState},
-    utils::strip_until_match,
 };
 
 use super::runnable::Runnable;
@@ -154,17 +153,6 @@ impl Display {
         }
     }
 
-    /// If the artist name is leading the title, we remove the artist from the title
-    fn sanitize_title(title: String, artist: &str) -> String {
-        if title
-            .to_lowercase()
-            .contains(&format!("{} -", &artist.to_lowercase()))
-        {
-            return strip_until_match(&format!("{} -", artist), &title).to_owned();
-        }
-        title
-    }
-
     fn get_class(&self, state: &PlayerState) -> &str {
         if let Some(playing) = state.playing {
             if playing {
@@ -185,6 +173,50 @@ impl Display {
         )
     }
 
+    fn populate_using_placeholders(
+        &self,
+        player_state: &PlayerState,
+        fields: &mut HashMap<&str, TextEffect>,
+    ) -> String {
+        let icon = match player_state.playing.unwrap_or(false) {
+            true => &self.args.pause_icon,
+            false => &self.args.play_icon,
+        };
+
+        // FIXME: the fields shouldn't be missing, but I should still try to avoid unwrapping
+        let artist = fields.get_mut("artist").unwrap().draw(&player_state.artist);
+        let title = fields.get_mut("title").unwrap().draw(&player_state.title);
+
+        let mut result = String::new();
+        let mut placeholder = String::new();
+        let mut add_next = false;
+
+        for c in self.args.format.chars() {
+            if add_next {
+                placeholder.push(c);
+                add_next = false;
+            } else if c != '%' && !placeholder.is_empty() {
+                placeholder.push(c);
+            } else if c != '%' {
+                result.push(c);
+            } else if c == '%' && !placeholder.is_empty() {
+                match placeholder.to_lowercase().as_str() {
+                    "icon" => result.push_str(icon),
+                    "title" => result.push_str(&title),
+                    "artist" => result.push_str(&artist),
+                    "album" => todo!(),
+                    "player" => todo!(),
+                    _ => error!("failed to parse placeholder: {placeholder}"),
+                }
+                placeholder.clear();
+            } else if c == '%' && placeholder.is_empty() {
+                add_next = true;
+            }
+        }
+
+        result
+    }
+
     fn draw(&self, player_state: &Option<PlayerState>, fields: &mut HashMap<&str, TextEffect>) {
         let player_state = match player_state {
             Some(state) => state,
@@ -194,35 +226,10 @@ impl Display {
             }
         };
 
-        let icon = match player_state.playing.unwrap_or(false) {
-            true => &self.args.pause_icon,
-            false => &self.args.play_icon,
-        };
-
-        let artist = &player_state.artist;
-        let title = &player_state.title;
-
-        let formatted = if title.is_empty() && artist.is_empty() {
-            "No data".to_owned()
-        } else {
-            format!(
-                "{}{}",
-                if artist.is_empty() {
-                    String::new()
-                } else {
-                    format!("{} - ", fields.get_mut("artist").unwrap().draw(artist))
-                },
-                fields
-                    .get_mut("title")
-                    .unwrap()
-                    .draw(&Display::sanitize_title(title.clone(), artist))
-            )
-        };
-
         println!(
             "{}",
             self.format_json_output(
-                &format!("[ {icon} ] {formatted}"),
+                &self.populate_using_placeholders(player_state, fields),
                 self.get_class(player_state)
             )
         )

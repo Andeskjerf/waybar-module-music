@@ -17,7 +17,7 @@ pub struct Args {
 
     /// Format string
     #[arg(short, long, default_value_t = String::from("[ %icon% ] %artist% - %title%"))]
-    format: String,
+    pub format: String,
 
     /// Pause before restarting marquee, in ms
     #[arg(short, long, default_value_t = 0)]
