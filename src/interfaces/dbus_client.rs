@@ -64,6 +64,13 @@ impl DBusClient {
         ))
     }
 
+    pub fn query_mediaplayer_identity(&self, player_id: &str) -> Result<String, Box<dyn Error>> {
+        let proxy = self.get_media_player_proxy(player_id);
+        let identity: String = proxy.get("org.mpris.MediaPlayer2", "Identity")?;
+
+        Ok(identity)
+    }
+
     pub fn get_media_player_proxy<'a>(&'a self, player_id: &'a str) -> Proxy<'a, &'a Connection> {
         self.conn.with_proxy(
             player_id,

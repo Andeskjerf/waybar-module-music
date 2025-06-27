@@ -12,6 +12,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct PlayerClient {
+    player_name: String,
     metadata: MprisMetadata,
     playback_state: Option<MprisPlayback>,
     pub last_updated: u64,
@@ -21,8 +22,9 @@ pub struct PlayerClient {
 }
 
 impl PlayerClient {
-    pub fn new(event_bus: EventBusHandle, metadata: MprisMetadata) -> Self {
+    pub fn new(player_name: String, event_bus: EventBusHandle, metadata: MprisMetadata) -> Self {
         Self {
+            player_name,
             event_bus,
             metadata,
             last_updated: 0,
@@ -44,7 +46,11 @@ impl PlayerClient {
             .as_secs();
 
         match bincode::encode_to_vec(
-            PlayerState::from_mpris_data(self.metadata.clone(), self.playback_state.clone()),
+            PlayerState::from_mpris_data(
+                self.player_name.clone(),
+                self.metadata.clone(),
+                self.playback_state.clone(),
+            ),
             config::standard(),
         ) {
             Ok(encoded) => self

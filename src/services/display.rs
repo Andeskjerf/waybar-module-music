@@ -162,8 +162,8 @@ impl Display {
                         );
                         Display::set_text_effect_field(
                             &mut fields,
-                            &player_state.player_id.unwrap(),
-                            state.player_id.as_ref().unwrap(),
+                            &player_state.player_name,
+                            &state.player_name,
                             "player",
                         );
                     }
@@ -219,7 +219,7 @@ impl Display {
         let player = fields
             .get_mut("player")
             .unwrap()
-            .draw(player_state.player_id.as_ref().unwrap());
+            .draw(&player_state.player_name);
 
         let mut result = String::new();
         let mut placeholder = String::new();

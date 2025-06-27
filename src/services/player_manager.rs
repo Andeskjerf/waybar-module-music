@@ -113,10 +113,14 @@ impl PlayerManager {
             match msg {
                 PlayerManagerMessage::GotMetadata(mpris_metadata) => {
                     let player_id = mpris_metadata.player_id.clone();
-                    match players.entry(player_id) {
+                    match players.entry(player_id.clone()) {
                         Entry::Occupied(mut e) => e.get_mut().update_metadata(mpris_metadata),
                         Entry::Vacant(e) => {
-                            e.insert(PlayerClient::new(self.event_bus.clone(), mpris_metadata));
+                            e.insert(PlayerClient::new(
+                                self.dbus_client.query_mediaplayer_identity(&player_id).unwrap_or_else(|_| {error!("failed to query media player identity, defaulting to ERR"); String::from("ERR")}),
+                                self.event_bus.clone(),
+                                mpris_metadata,
+                            ));
                         }
                     }
                 }
@@ -126,7 +130,7 @@ impl PlayerManager {
                         if let Ok(metadata) = self.dbus_client.query_metadata(id) {
                             players.insert(
                                 id.clone(),
-                                PlayerClient::new(self.event_bus.clone(), metadata),
+                                PlayerClient::new(self.dbus_client.query_mediaplayer_identity(id).unwrap_or_else(|_| {error!("failed to query media player identity, defaulting to ERR"); String::from("ERR")}), self.event_bus.clone(), metadata),
                             );
                         } else {
                             error!(

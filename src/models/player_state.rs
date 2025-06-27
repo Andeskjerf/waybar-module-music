@@ -4,7 +4,8 @@ use super::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback};
 
 #[derive(Debug, Clone, Encode, Decode, PartialEq)]
 pub struct PlayerState {
-    pub player_id: Option<String>,
+    pub player_id: String,
+    pub player_name: String,
     pub artist: String,
     pub album: String,
     pub title: String,
@@ -13,7 +14,8 @@ pub struct PlayerState {
 
 impl PlayerState {
     pub fn new(
-        player_id: Option<String>,
+        player_id: String,
+        player_name: String,
         artist: String,
         album: String,
         title: String,
@@ -21,6 +23,7 @@ impl PlayerState {
     ) -> Self {
         Self {
             player_id,
+            player_name,
             artist,
             album,
             title,
@@ -28,7 +31,11 @@ impl PlayerState {
         }
     }
 
-    pub fn from_mpris_data(metadata: MprisMetadata, playback: Option<MprisPlayback>) -> Self {
+    pub fn from_mpris_data(
+        player_name: String,
+        metadata: MprisMetadata,
+        playback: Option<MprisPlayback>,
+    ) -> Self {
         let player_id = metadata.player_id;
         let artist = metadata.artist.first().unwrap().clone();
         let album = metadata.album.unwrap();
@@ -38,6 +45,6 @@ impl PlayerState {
             .playing
             .map(|elem| elem == "Playing");
 
-        PlayerState::new(Some(player_id), artist, album, title, playing)
+        PlayerState::new(player_id, player_name, artist, album, title, playing)
     }
 }
