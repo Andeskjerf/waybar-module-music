@@ -16,8 +16,8 @@ Built with Rust using event-driven architecture and D-Bus integration to monitor
 
 ## 🚀 Performance
 
-Unlike polling-based solutions, this module uses **event-driven architecture**:
-- **~0% CPU usage**
+Unlike polling-based solutions, this module is **event-driven**:
+- **~0% CPU usage** - we only update when needed
 - **~500KB memory usage**
 
 ## 📦 Installation
