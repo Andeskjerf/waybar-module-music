@@ -109,6 +109,20 @@ impl Display {
         }
     }
 
+    fn set_text_effect_field(
+        fields: &mut HashMap<&str, TextEffect>,
+        old_value: &str,
+        new_value: &str,
+        field: &str,
+    ) {
+        if old_value != new_value {
+            match fields.get_mut(field) {
+                Some(field) => field.override_last_drawn(new_value.to_string()),
+                None => error!("failed to get '{field}' field"),
+            }
+        }
+    }
+
     fn listen_for_updates(
         &self,
         rx: Receiver<DisplayMessages>,
@@ -128,18 +142,30 @@ impl Display {
             match msg {
                 DisplayMessages::PlayerStateChanged(state) => {
                     if let Some(player_state) = player_state {
-                        if player_state.title != state.title {
-                            match fields.get_mut("title") {
-                                Some(field) => field.override_last_drawn(state.title.clone()),
-                                None => error!("failed to get 'title' field"),
-                            }
-                        }
-                        if player_state.artist != state.artist {
-                            match fields.get_mut("artist") {
-                                Some(field) => field.override_last_drawn(state.artist.clone()),
-                                None => error!("failed to get 'artist' field"),
-                            }
-                        }
+                        Display::set_text_effect_field(
+                            &mut fields,
+                            &player_state.title,
+                            &state.title,
+                            "title",
+                        );
+                        Display::set_text_effect_field(
+                            &mut fields,
+                            &player_state.artist,
+                            &state.artist,
+                            "artist",
+                        );
+                        Display::set_text_effect_field(
+                            &mut fields,
+                            &player_state.album,
+                            &state.album,
+                            "album",
+                        );
+                        Display::set_text_effect_field(
+                            &mut fields,
+                            &player_state.player_id.unwrap(),
+                            state.player_id.as_ref().unwrap(),
+                            "player",
+                        );
                     }
                     player_state = Some(state);
                     self.draw(&player_state, &mut fields)
