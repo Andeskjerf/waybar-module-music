@@ -4,6 +4,8 @@ A **blazingly fast**, real-time media monitoring module for Waybar.
 
 Built with Rust using event-driven architecture and D-Bus integration to monitor MPRIS-compatible media players (Spotify, Firefox, VLC, mpv, and more).
 
+![Module showcase using marquee and marquee delay options](https://lmao.sh/pics/waybar-module-music.gif)
+
 ## ✨ Features
 
 - **🔄 Real-time updates** - Instantly reflects media player state changes
