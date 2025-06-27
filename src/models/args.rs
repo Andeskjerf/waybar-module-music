@@ -4,8 +4,8 @@ use clap::Parser;
 #[command(version)]
 pub struct Args {
     /// Only monitor specified players, e.g "spotify firefox"
-    #[arg(short, long)]
-    whitelist: Vec<String>,
+    #[arg(short, long, value_delimiter = ' ')]
+    pub whitelist: Vec<String>,
 
     /// Set play icon
     #[arg(long, default_value_t = String::from(""))]

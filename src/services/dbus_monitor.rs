@@ -11,12 +11,13 @@ use log::{error, info, warn};
 use crate::{
     event_bus::{EventBusHandle, EventType},
     interfaces::dbus_client::DBusClient,
-    models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
+    models::{args::Args, mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
 };
 
 use super::runnable::Runnable;
 
 pub struct DBusMonitor {
+    args: Arc<Args>,
     event_bus: EventBusHandle,
     dbus_client: Arc<DBusClient>,
 }
@@ -25,8 +26,9 @@ pub struct DBusMonitor {
 // who should handle that? the monitor, or a new service?
 
 impl DBusMonitor {
-    pub fn new(event_bus: EventBusHandle, dbus_client: Arc<DBusClient>) -> Self {
+    pub fn new(args: Arc<Args>, event_bus: EventBusHandle, dbus_client: Arc<DBusClient>) -> Self {
         Self {
+            args,
             event_bus,
             dbus_client,
         }
@@ -53,7 +55,37 @@ impl DBusMonitor {
         EventType::ParseError
     }
 
-    fn handle_on_match(msg: &Message, event_bus: EventBusHandle) -> bool {
+    fn should_handle_sender(args: Arc<Args>, dbus_client: Arc<DBusClient>, msg: &Message) -> bool {
+        let sender = match msg.sender() {
+            Some(sender) => sender.to_string(),
+            None => {
+                error!("failed to determine sender, handling it anyway");
+                return true;
+            }
+        };
+
+        match dbus_client.query_mediaplayer_identity(&sender) {
+            Ok(identity) => args
+                .whitelist
+                .iter()
+                .any(|w| identity.to_lowercase().contains(&w.to_lowercase())),
+            Err(err) => {
+                error!("failed to query media player identity, handling it anyway: {err}");
+                true
+            }
+        }
+    }
+
+    fn handle_on_match(
+        args: Arc<Args>,
+        dbus_client: Arc<DBusClient>,
+        msg: &Message,
+        event_bus: EventBusHandle,
+    ) -> bool {
+        if !DBusMonitor::should_handle_sender(args, dbus_client, msg) {
+            return true;
+        }
+
         let event_type = DBusMonitor::determine_event_type(msg);
         let encoded = match event_type {
             EventType::PlayerSongChanged => {
@@ -92,8 +124,10 @@ impl DBusMonitor {
 
         // TODO: could maybe do something smart with this token
         let event_bus = self.event_bus.clone();
+        let dbus_client = self.dbus_client.clone();
+        let args = self.args.clone();
         let token = match conn.add_match(rule, move |_: (), _, msg| {
-            DBusMonitor::handle_on_match(msg, event_bus.clone())
+            DBusMonitor::handle_on_match(args.clone(), dbus_client.clone(), msg, event_bus.clone())
         }) {
             Ok(token) => token,
             Err(err) => {

@@ -57,6 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let services: Vec<Arc<dyn Runnable>> = vec![
         Arc::new(DBusMonitor::new(
+            args.clone(),
             event_bus_handle.clone(),
             dbus_client.clone(),
         )),
