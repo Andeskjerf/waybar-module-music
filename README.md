@@ -74,7 +74,7 @@ waybar-module-music [OPTIONS]
 | `--play-icon <icon>` | Set play icon | `` |
 | `--pause-icon <icon>` | Set pause icon | `` |
 | `-f, --format <template>` | Format string (see below) | `[ %icon% ] %artist% - %title%` |
-| `-d, --delay-on-loop <ms>` | Pause before restarting marquee | `0` |
+| `-d, --delay-marquee <ms>` | Pause before restarting marquee | `0` |
 | `--effect-speed <ms>` | Animation update interval | `200` |
 | `-a, --artist-width <chars>` | Max artist length before overflow | Unlimited |
 | `-t, --title-width <chars>` | Max title length before overflow | `20` |

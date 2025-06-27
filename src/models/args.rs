@@ -21,7 +21,7 @@ pub struct Args {
 
     /// Pause before restarting marquee, in ms
     #[arg(short, long, default_value_t = 0)]
-    pub delay_on_loop: u32,
+    pub delay_marquee: u32,
 
     /// Animation update interval, in ms
     #[arg(long, default_value_t = 200)]

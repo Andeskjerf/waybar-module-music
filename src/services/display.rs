@@ -67,7 +67,7 @@ impl Display {
                 "title",
                 TextEffect::new().with_effect(Box::new(Marquee::new(
                     self.args.title_width,
-                    self.args.delay_on_loop as u16,
+                    self.args.delay_marquee as u16,
                 ))),
             );
 
@@ -75,7 +75,7 @@ impl Display {
                 "artist",
                 TextEffect::new().with_effect(Box::new(Marquee::new(
                     self.args.artist_width,
-                    self.args.delay_on_loop as u16,
+                    self.args.delay_marquee as u16,
                 ))),
             );
         } else if self.args.ellipsis {
