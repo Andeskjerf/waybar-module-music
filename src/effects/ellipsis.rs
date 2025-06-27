@@ -18,10 +18,11 @@ impl Ellipsis {
 
 impl Effect for Ellipsis {
     fn apply(&mut self, text: String) -> String {
-        if text.len() <= self.max_width as usize || self.max_width == 0{
+        if text.len() <= self.max_width as usize || self.max_width == 0 {
             return text;
         }
 
+        self.active = false;
         format!("{}...", text.split_at(self.max_width as usize).0)
     }
 
@@ -30,11 +31,13 @@ impl Effect for Ellipsis {
     }
 
     fn update_active(&mut self) {
-        self.active = true
+        self.active = self.text.len() > self.max_width as usize && self.max_width > 0;
     }
 
     fn set_text(&mut self, text: String) {
-        self.text = text;
-        self.update_active();
+        if self.text != text {
+            self.text = text;
+            self.update_active();
+        }
     }
 }
