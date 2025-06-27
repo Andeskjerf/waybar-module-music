@@ -273,7 +273,7 @@ impl Display {
 impl Runnable for Display {
     fn run(self: Arc<Self>) -> std::thread::JoinHandle<()> {
         thread::spawn(move || {
-            info!("starting Display worker");
+            info!("starting Display thread");
             self.init_worker();
         })
     }
