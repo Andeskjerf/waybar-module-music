@@ -2,6 +2,9 @@
 name = "waybar-module-music"
 version = "0.1.0"
 edition = "2021"
+description = "MPRIS music module for Waybar"
+license = "GPL3"
+repository = "https://github.com/Andeskjerf/waybar-module-music"
 
 [profile.release]
 lto = true
