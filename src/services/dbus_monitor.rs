@@ -56,6 +56,10 @@ impl DBusMonitor {
     }
 
     fn should_handle_sender(args: Arc<Args>, dbus_client: Arc<DBusClient>, msg: &Message) -> bool {
+        if args.whitelist.is_empty() {
+            return true;
+        }
+
         let sender = match msg.sender() {
             Some(sender) => sender.to_string(),
             None => {
