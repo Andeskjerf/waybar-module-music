@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::effects::effect::Effect;
 
+#[derive(Default)]
 pub struct TextEffect {
     last_drawn: String,
     effects: Arc<Mutex<Vec<Box<dyn Effect>>>>,

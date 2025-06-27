@@ -67,6 +67,9 @@ impl Display {
             ))),
         );
 
+        fields.insert("album", TextEffect::new());
+        fields.insert("player", TextEffect::new());
+
         {
             let tx = tx.clone();
             let effect_speed = self.args.effect_speed as u64;
@@ -186,6 +189,11 @@ impl Display {
         // FIXME: the fields shouldn't be missing, but I should still try to avoid unwrapping
         let artist = fields.get_mut("artist").unwrap().draw(&player_state.artist);
         let title = fields.get_mut("title").unwrap().draw(&player_state.title);
+        let album = fields.get_mut("album").unwrap().draw(&player_state.album);
+        let player = fields
+            .get_mut("player")
+            .unwrap()
+            .draw(player_state.player_id.as_ref().unwrap());
 
         let mut result = String::new();
         let mut placeholder = String::new();
@@ -204,8 +212,8 @@ impl Display {
                     "icon" => result.push_str(icon),
                     "title" => result.push_str(&title),
                     "artist" => result.push_str(&artist),
-                    "album" => todo!(),
-                    "player" => todo!(),
+                    "album" => result.push_str(&album),
+                    "player" => result.push_str(&player),
                     _ => error!("failed to parse placeholder: {placeholder}"),
                 }
                 placeholder.clear();

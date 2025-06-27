@@ -18,7 +18,6 @@ mod event_bus;
 mod interfaces;
 mod models;
 mod services;
-mod utils;
 
 fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
     let app_cache = dirs::cache_dir()
