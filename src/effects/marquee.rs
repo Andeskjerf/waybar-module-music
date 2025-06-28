@@ -62,7 +62,10 @@ impl Effect for Marquee {
         }
 
         if result.len() > self.max_width as usize {
-            result.split_at(self.max_width as usize).0.to_owned()
+            result
+                .chars()
+                .take(self.max_width as usize)
+                .collect::<String>()
         } else {
             result
         }
