@@ -295,12 +295,12 @@ impl Display {
 
         debug!("drawing:\n{player_state}");
 
+        let populated_output = self.populate_using_placeholders(player_state, fields);
+        debug!("populated output: {populated_output}");
+
         println!(
             "{}",
-            self.format_json_output(
-                &self.populate_using_placeholders(player_state, fields),
-                self.get_class(player_state)
-            )
+            self.format_json_output(&populated_output, self.get_class(player_state))
         )
     }
 }
