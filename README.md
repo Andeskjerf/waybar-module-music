@@ -1,6 +1,6 @@
 # waybar-module-music
 
-A **blazingly fast**, real-time media monitoring module for Waybar.
+A real-time media monitoring module for Waybar.
 
 Built with Rust using event-driven architecture and D-Bus integration to monitor MPRIS-compatible media players (Spotify, Firefox, VLC, mpv, and more).
 
@@ -18,9 +18,7 @@ Built with Rust using event-driven architecture and D-Bus integration to monitor
 
 ## 🚀 Performance
 
-Unlike polling-based solutions, this module is **event-driven**:
-- **~0% CPU usage** - we only update when needed
-- **~1MB memory usage**
+Unlike polling-based solutions, this module is **event-driven**, meaning we only do any work when we have to, like when the state of a media player changes or a text effect is due for an update.
 
 ## 📦 Installation
 
