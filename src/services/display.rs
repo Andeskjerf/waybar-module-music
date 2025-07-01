@@ -1,5 +1,5 @@
 use bincode::config;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 
 use crate::{
     effects::{ellipsis::Ellipsis, marquee::Marquee, text_effect::TextEffect},
@@ -21,6 +21,20 @@ use std::{
 enum DisplayMessages {
     PlayerStateChanged(PlayerState),
     AnimationDue,
+}
+
+impl std::fmt::Display for DisplayMessages {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                DisplayMessages::PlayerStateChanged(player_state) =>
+                    format!("PlayerStateChanged: {player_state}"),
+                DisplayMessages::AnimationDue => String::from("AnimationDue"),
+            }
+        )
+    }
 }
 
 pub struct Display {
@@ -149,6 +163,7 @@ impl Display {
         let mut player_state: Option<PlayerState> = None;
 
         loop {
+            debug!("waiting for message");
             let msg = match rx.recv() {
                 Ok(msg) => msg,
                 Err(err) => {
@@ -157,8 +172,12 @@ impl Display {
                 }
             };
 
+            debug!("{msg}");
+
             match msg {
                 DisplayMessages::PlayerStateChanged(state) => {
+                    // TODO: could update text effects at this point and check if any effects apply or not
+                    // that way, i can start/stop the animation thread based on if effects are active or not
                     if let Some(player_state) = player_state {
                         Display::set_text_effect_field(
                             &mut fields,
@@ -184,6 +203,8 @@ impl Display {
                             &state.player_name,
                             "player",
                         );
+                    } else {
+                        error!("player_state was null, not updating fields");
                     }
                     player_state = Some(state);
                     self.draw(&player_state, &mut fields)
@@ -271,6 +292,8 @@ impl Display {
                 return;
             }
         };
+
+        debug!("drawing:\n{player_state}");
 
         println!(
             "{}",

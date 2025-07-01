@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use bincode::{Decode, Encode};
 
 use super::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback};
@@ -53,5 +55,15 @@ impl PlayerState {
             title,
             playing,
         ))
+    }
+}
+
+impl Display for PlayerState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "player_id: {}\nplayer_name: {}\nartist: {}\nalbum: {}\ntitle: {}\nplaying: {:?}",
+            self.player_id, self.player_name, self.artist, self.album, self.title, self.playing
+        )
     }
 }
