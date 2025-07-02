@@ -1,5 +1,5 @@
 use bincode::config;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 
 use crate::{
     effects::{ellipsis::Ellipsis, marquee::Marquee, text_effect::TextEffect},
@@ -37,6 +37,7 @@ impl Display {
         println!("{}", self.format_json_output("No activity", "stopped"));
 
         let (tx, rx) = mpsc::channel();
+        let (effect_tx, effect_rx) = mpsc::channel();
 
         if let Some(rx) = self.event_bus.subscribe(EventType::PlayerStateChanged) {
             let tx = tx.clone();
@@ -51,11 +52,11 @@ impl Display {
             let tx = tx.clone();
             let effect_speed = self.args.effect_speed as u64;
             thread::spawn(move || {
-                Display::text_effect_timer(effect_speed, tx);
+                Display::text_effect_timer(effect_speed, effect_rx, tx);
             });
         }
 
-        self.listen_for_updates(rx, self.init_fields());
+        self.listen_for_updates(rx, effect_tx, self.init_fields());
     }
 
     fn init_fields(&self) -> HashMap<&str, TextEffect> {
@@ -99,11 +100,28 @@ impl Display {
         fields
     }
 
-    fn text_effect_timer(interval_ms: u64, tx: Sender<DisplayMessages>) {
+    fn text_effect_timer(interval_ms: u64, effect_rx: Receiver<bool>, tx: Sender<DisplayMessages>) {
+        let mut active_effects = false;
         loop {
-            thread::sleep(Duration::from_millis(interval_ms));
-            if let Err(err) = tx.send(DisplayMessages::AnimationDue) {
-                warn!("failed to send AnimationDue message: {err}");
+            if active_effects {
+                thread::sleep(Duration::from_millis(interval_ms));
+                if let Err(err) = tx.send(DisplayMessages::AnimationDue) {
+                    warn!("failed to send AnimationDue message: {err}");
+                }
+                active_effects = match effect_rx.try_recv() {
+                    Ok(msg) => msg,
+                    Err(_) => active_effects,
+                };
+            } else {
+                debug!("waiting for effect trigger to continue effect timer");
+                active_effects = match effect_rx.recv() {
+                    Ok(msg) => msg,
+                    Err(err) => {
+                        error!("failed to receieve effect message: {err}");
+                        false
+                    }
+                };
+                debug!("got effect trigger message: {active_effects}");
             }
         }
     }
@@ -135,15 +153,23 @@ impl Display {
     ) {
         if old_value != new_value {
             match fields.get_mut(field) {
-                Some(field) => field.override_last_drawn(new_value.to_string()),
+                Some(field) => {
+                    field.set_effect_text(new_value.to_string());
+                    field.override_last_drawn(new_value.to_string());
+                }
                 None => error!("failed to get '{field}' field"),
             }
         }
     }
 
+    fn should_effects_be_redrawn(&self, fields: &HashMap<&str, TextEffect>) -> bool {
+        fields.iter().any(|(_, v)| v.has_active_effects())
+    }
+
     fn listen_for_updates(
         &self,
         rx: Receiver<DisplayMessages>,
+        effect_tx: Sender<bool>,
         mut fields: HashMap<&str, TextEffect>,
     ) {
         let mut player_state: Option<PlayerState> = None;
@@ -185,11 +211,14 @@ impl Display {
                             "player",
                         );
                     }
+                    if let Err(err) = effect_tx.send(self.should_effects_be_redrawn(&fields)) {
+                        error!("failed to notify effects thread: {err}");
+                    }
                     player_state = Some(state);
                     self.draw(&player_state, &mut fields)
                 }
                 DisplayMessages::AnimationDue => {
-                    if fields.iter().any(|(_, v)| v.has_active_effects()) {
+                    if self.should_effects_be_redrawn(&fields) {
                         fields.iter_mut().for_each(|(_, v)| {
                             v.should_redraw();
                         });
@@ -271,6 +300,8 @@ impl Display {
                 return;
             }
         };
+
+        debug!("drawing");
 
         println!(
             "{}",
