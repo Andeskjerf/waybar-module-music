@@ -21,6 +21,12 @@ impl TextEffect {
         }
     }
 
+    pub fn set_effect_text(&mut self, text: String) {
+        self.effects.lock().unwrap().iter_mut().for_each(|effect| {
+            effect.set_text(text.clone());
+        });
+    }
+
     pub fn has_active_effects(&self) -> bool {
         self.effects
             .lock()
