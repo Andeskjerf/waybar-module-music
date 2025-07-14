@@ -7,6 +7,7 @@ use std::{
 use clap::Parser;
 use event_bus::EventBus;
 use interfaces::dbus_client::DBusClient;
+use log::info;
 use models::args::Args;
 use services::{
     dbus_monitor::DBusMonitor, display::Display, player_manager::PlayerManager, runnable::Runnable,
@@ -75,6 +76,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for handle in handles {
         let _ = handle.join();
     }
+
+    info!("all threads stopped, stopping...");
 
     Ok(())
 }

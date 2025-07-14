@@ -194,6 +194,7 @@ impl Runnable for PlayerManager {
         thread::spawn(move || {
             info!("starting PlayerManager thread");
             self.init_worker();
+            info!("PlayerManager thread is stopping");
         })
     }
 }

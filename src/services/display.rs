@@ -318,6 +318,7 @@ impl Runnable for Display {
         thread::spawn(move || {
             info!("starting Display thread");
             self.init_worker();
+            info!("Display thread is stopping");
         })
     }
 }

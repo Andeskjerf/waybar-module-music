@@ -159,6 +159,7 @@ impl Runnable for DBusMonitor {
         thread::spawn(move || {
             info!("starting DBusMonitor thread");
             let result = self.begin_monitoring();
+            info!("DBusMonitor thread is stopping");
         })
     }
 }

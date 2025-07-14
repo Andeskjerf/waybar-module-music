@@ -132,5 +132,6 @@ impl EventBus {
                 }
             }
         }
+        info!("EventBus thread is stopping");
     }
 }
