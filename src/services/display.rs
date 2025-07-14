@@ -18,6 +18,7 @@ use std::{
     time::Duration,
 };
 
+#[derive(Debug)]
 enum DisplayMessages {
     PlayerStateChanged(PlayerState),
     AnimationDue,
@@ -183,6 +184,8 @@ impl Display {
                 }
             };
 
+            debug!("msg receieved: {:?}", msg);
+
             match msg {
                 DisplayMessages::PlayerStateChanged(state) => {
                     if let Some(player_state) = player_state {
@@ -211,11 +214,14 @@ impl Display {
                             "player",
                         );
                     }
+                    player_state = Some(state);
+                    fields.iter_mut().for_each(|(_, v)| {
+                        v.should_redraw();
+                    });
+                    self.draw(&player_state, &mut fields);
                     if let Err(err) = effect_tx.send(self.should_effects_be_redrawn(&fields)) {
                         error!("failed to notify effects thread: {err}");
                     }
-                    player_state = Some(state);
-                    self.draw(&player_state, &mut fields)
                 }
                 DisplayMessages::AnimationDue => {
                     if self.should_effects_be_redrawn(&fields) {
