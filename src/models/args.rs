@@ -42,4 +42,8 @@ pub struct Args {
     /// Enable ellipsis (...) on overflow
     #[arg(long, default_value_t = false)]
     pub ellipsis: bool,
+
+    /// Enable debug logging
+    #[arg(long, default_value_t = false)]
+    pub debug: bool,
 }

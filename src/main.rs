@@ -20,7 +20,7 @@ mod interfaces;
 mod models;
 mod services;
 
-fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
+fn init_logger(debug: bool) -> Result<(), Box<dyn std::error::Error>> {
     let app_cache = dirs::cache_dir()
         .ok_or_else(|| {
             std::io::Error::new(
@@ -35,7 +35,11 @@ fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
     let log_path = app_cache.join("app.log");
 
     CombinedLogger::init(vec![WriteLogger::new(
-        log::LevelFilter::Info,
+        if debug {
+            log::LevelFilter::Debug
+        } else {
+            log::LevelFilter::Info
+        },
         Config::default(),
         File::create(log_path)?,
     )])?;
@@ -43,10 +47,10 @@ fn init_logger() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // TODO: events, like sending signal to play/pause active player
-    init_logger()?;
-
     let args = Arc::new(Args::parse());
+
+    // TODO: events, like sending signal to play/pause active player
+    init_logger(args.debug)?;
 
     let (event_bus, event_bus_handle) = EventBus::new();
     thread::spawn(move || {
