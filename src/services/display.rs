@@ -301,8 +301,6 @@ impl Display {
             }
         };
 
-        debug!("drawing");
-
         println!(
             "{}",
             self.format_json_output(
