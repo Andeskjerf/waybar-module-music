@@ -79,6 +79,7 @@ waybar-module-music [OPTIONS]
 | `-t, --title-width <chars>` | Max title length before overflow | `20` |
 | `-m, --marquee` | Enable marquee scrolling on overflow | |
 | `--ellipsis` | Enable ellipsis (...) on overflow | |
+| `--debug` | Allow debug log events in the log file | |
 
 ### Format String
 
