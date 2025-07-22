@@ -307,13 +307,13 @@ impl Display {
             }
         };
 
-        println!(
-            "{}",
-            self.format_json_output(
-                &self.populate_using_placeholders(player_state, fields),
-                self.get_class(player_state)
-            )
-        )
+        let output = self.format_json_output(
+            &self.populate_using_placeholders(player_state, fields),
+            self.get_class(player_state),
+        );
+
+        // debug!("{output}");
+        println!("{output}")
     }
 }
 
