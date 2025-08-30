@@ -34,6 +34,17 @@ impl Display {
         Self { args, event_bus }
     }
 
+    fn escape_pango(&self, text_to_escape: &str) -> String {
+        text_to_escape.chars().map(|x| match x {
+            // find and replace all special characters with escaped pango sequences
+            '&' => "&amp;".to_string(),
+            '<' => "&lt;".to_string(),
+            '>' => "&gt;".to_string(),
+            '\'' => "&#39;".to_string(),
+            _ => x.to_string()
+        }).collect()
+    }
+
     fn init_worker(self: Arc<Self>) {
         println!("{}", self.format_json_output("No activity", "stopped"));
 
@@ -249,6 +260,8 @@ impl Display {
 
     /// Create the final output JSON, in the format that Waybar expects
     fn format_json_output(&self, text: &str, class: &str) -> String {
+        let text = self.escape_pango(text);
+        let class = self.escape_pango(class);
         format!(
             "{{\"text\": \"{}\", \"tooltip\": \"{}\", \"class\": \"{}\", \"alt\": \"{}\"}}",
             text, "", class, ""
