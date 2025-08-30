@@ -49,8 +49,6 @@ impl TextEffect {
     }
 
     pub fn draw(&mut self, text: &str) -> String {
-        let text = self.sanitize_output(text);
-
         if self.last_drawn.is_empty() {
             self.last_drawn = text.to_string();
         }
