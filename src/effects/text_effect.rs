@@ -48,12 +48,6 @@ impl TextEffect {
         self.last_drawn = text;
     }
 
-    // waybar is not able to display unescaped quotation marks
-    // FIXME: the width of the output changes in waybar even with this, for some reason
-    fn sanitize_output(&self, value: &str) -> String {
-        value.replace("\"", "\\\"")
-    }
-
     pub fn draw(&mut self, text: &str) -> String {
         let text = self.sanitize_output(text);
 
