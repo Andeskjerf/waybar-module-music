@@ -1,8 +1,4 @@
-use std::{
-    fs::{self, File},
-    sync::Arc,
-    thread,
-};
+use std::{fs::File, sync::Arc, thread};
 
 use clap::Parser;
 use event_bus::EventBus;
@@ -12,27 +8,18 @@ use models::args::Args;
 use services::{
     dbus_monitor::DBusMonitor, display::Display, player_manager::PlayerManager, runnable::Runnable,
 };
-use simplelog::{CombinedLogger, Config, WriteLogger};
+use simplelog::{CombinedLogger, Config as LogConfig, WriteLogger};
 
 mod effects;
 mod event_bus;
+mod helpers;
 mod interfaces;
 mod models;
 mod services;
 
 fn init_logger(debug: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let app_cache = dirs::cache_dir()
-        .ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "could not get user's cache directory",
-            )
-        })?
-        .join("waybar-module-music");
-
-    let _ = fs::create_dir(&app_cache);
-
-    let log_path = app_cache.join("app.log");
+    let cache_dir = helpers::dir::get_and_create_dir(dirs::cache_dir)?;
+    let log_path = cache_dir.join("app.log");
 
     CombinedLogger::init(vec![WriteLogger::new(
         if debug {
@@ -40,7 +27,7 @@ fn init_logger(debug: bool) -> Result<(), Box<dyn std::error::Error>> {
         } else {
             log::LevelFilter::Info
         },
-        Config::default(),
+        LogConfig::default(),
         File::create(log_path)?,
     )])?;
     Ok(())
