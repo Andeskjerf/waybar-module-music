@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf};
 
 /// Gets PathBuf depending on given callback, then creates a new directory within that with the module's name
 /// Takes a function that returns a directory, for example, `dirs::cache_dir()`
-pub fn get_and_create_dir<F>(callback: F) -> Result<PathBuf, Box<dyn std::error::Error>>
+pub fn get_and_create_dir<F>(callback: F) -> Result<PathBuf, std::io::Error>
 where
     F: Fn() -> Option<PathBuf>,
 {
