@@ -4,7 +4,7 @@ use log::{debug, error, info, warn};
 use crate::{
     effects::{ellipsis::Ellipsis, marquee::Marquee, text_effect::TextEffect},
     event_bus::{EventBusHandle, EventType},
-    models::{args::Args, player_state::PlayerState},
+    models::{args::Args, config::Config, player_state::PlayerState},
 };
 
 use super::runnable::Runnable;
@@ -26,12 +26,17 @@ enum DisplayMessages {
 
 pub struct Display {
     args: Arc<Args>,
+    config: Arc<Config>,
     event_bus: EventBusHandle,
 }
 
 impl Display {
-    pub fn new(args: Arc<Args>, event_bus: EventBusHandle) -> Self {
-        Self { args, event_bus }
+    pub fn new(args: Arc<Args>, config: Arc<Config>, event_bus: EventBusHandle) -> Self {
+        Self {
+            args,
+            config,
+            event_bus,
+        }
     }
 
     fn escape_pango(&self, text_to_escape: &str) -> String {
@@ -112,6 +117,7 @@ impl Display {
 
         fields.insert("album", TextEffect::new());
         fields.insert("player", TextEffect::new());
+        fields.insert("player_icon", TextEffect::new());
 
         fields
     }
@@ -304,6 +310,13 @@ impl Display {
                     .unwrap()
                     .draw(&player_state.player_name),
             ),
+            (
+                "player-icon",
+                fields.get_mut("player_icon").unwrap().draw(
+                    self.config
+                        .get_player_icon_by_partial_match(&player_state.player_name),
+                ),
+            ),
         ]
         .into_iter()
         .collect();
@@ -325,12 +338,13 @@ impl Display {
         };
 
         let output = self.format_json_output(
-            &self.populate_using_placeholders(player_state, fields),
+            self.populate_using_placeholders(player_state, fields)
+                .trim(),
             self.get_class(player_state),
         );
 
         // debug!("{output}");
-        println!("{output}")
+        println!("{}", output)
     }
 }
 

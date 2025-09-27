@@ -11,6 +11,8 @@ pub struct Config {
     player_icons: HashMap<String, String>,
 }
 
+static EMPTY_STRING: String = String::new();
+
 impl Config {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let config_dir = helpers::dir::get_and_create_dir(dirs::config_dir)?;
@@ -64,5 +66,15 @@ impl Config {
         if has_errors {
             log::warn!("Invalid values found while parsing 'player_icons'");
         }
+    }
+
+    pub fn get_player_icon_by_partial_match(&self, player_name: &str) -> &String {
+        for (k, v) in self.player_icons.iter() {
+            if player_name.to_lowercase().contains(&k.to_lowercase()) {
+                log::debug!("player icon ({k}) matched with player: {player_name}");
+                return v;
+            }
+        }
+        &EMPTY_STRING
     }
 }
