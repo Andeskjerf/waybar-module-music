@@ -4,7 +4,7 @@ use clap::Parser;
 use event_bus::EventBus;
 use interfaces::dbus_client::DBusClient;
 use log::info;
-use models::args::Args;
+use models::{args::Args, config::Config};
 use services::{
     dbus_monitor::DBusMonitor, display::Display, player_manager::PlayerManager, runnable::Runnable,
 };
@@ -38,6 +38,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // TODO: events, like sending signal to play/pause active player
     init_logger(args.debug)?;
+
+    let config = Config::new()?;
 
     let (event_bus, event_bus_handle) = EventBus::new();
     thread::spawn(move || {
