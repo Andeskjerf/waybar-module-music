@@ -21,7 +21,10 @@ struct Icons {
 impl Default for Icons {
     fn default() -> Self {
         Self {
-            players: HashMap::from([(String::from("sample-player"), String::from("🔊"))]),
+            players: HashMap::from([
+                (String::from("default"), String::new()),
+                (String::from("sample-player"), String::from("🔊")),
+            ]),
         }
     }
 }
@@ -65,7 +68,10 @@ impl Config {
                 return v;
             }
         }
-        &EMPTY_STRING
+        self.icons.players.get("default").unwrap_or_else(|| {
+            log::warn!("Failed to get default player icon! Has the default key-value been deleted? Defaulting to blank value");
+            &EMPTY_STRING
+        })
     }
 }
 
