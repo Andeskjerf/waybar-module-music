@@ -39,7 +39,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: events, like sending signal to play/pause active player
     init_logger(args.debug)?;
 
-    let config = Arc::new(Config::new()?);
+    let config = match Config::new() {
+        Ok(config) => Arc::new(config),
+        Err(err) => {
+            println!("{err}");
+            return Err(Box::new(err));
+        }
+    };
 
     let (event_bus, event_bus_handle) = EventBus::new();
     thread::spawn(move || {
