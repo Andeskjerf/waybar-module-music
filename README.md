@@ -89,6 +89,7 @@ Use these placeholders in your `--format` template:
 - `%title%` - Song title
 - `%album%` - Album name
 - `%player%` - Player name (spotify, firefox, etc.)
+- `%player-icon%` - Configurable icon to show for specific players (see `~/.config/waybar-module-music/config.toml`)
 
 **Example:**
 ```bash
