@@ -1,38 +1,25 @@
-use std::{
-    fs::{self, File},
-    sync::Arc,
-    thread,
-};
+use std::{fs::File, sync::Arc, thread};
 
 use clap::Parser;
 use event_bus::EventBus;
 use interfaces::dbus_client::DBusClient;
 use log::info;
-use models::args::Args;
+use models::{args::Args, config::Config};
 use services::{
     dbus_monitor::DBusMonitor, display::Display, player_manager::PlayerManager, runnable::Runnable,
 };
-use simplelog::{CombinedLogger, Config, WriteLogger};
+use simplelog::{CombinedLogger, Config as LogConfig, WriteLogger};
 
 mod effects;
 mod event_bus;
+mod helpers;
 mod interfaces;
 mod models;
 mod services;
 
 fn init_logger(debug: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let app_cache = dirs::cache_dir()
-        .ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "could not get user's cache directory",
-            )
-        })?
-        .join("waybar-module-music");
-
-    let _ = fs::create_dir(&app_cache);
-
-    let log_path = app_cache.join("app.log");
+    let cache_dir = helpers::dir::get_and_create_dir(dirs::cache_dir)?;
+    let log_path = cache_dir.join("app.log");
 
     CombinedLogger::init(vec![WriteLogger::new(
         if debug {
@@ -40,7 +27,7 @@ fn init_logger(debug: bool) -> Result<(), Box<dyn std::error::Error>> {
         } else {
             log::LevelFilter::Info
         },
-        Config::default(),
+        LogConfig::default(),
         File::create(log_path)?,
     )])?;
     Ok(())
@@ -51,6 +38,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // TODO: events, like sending signal to play/pause active player
     init_logger(args.debug)?;
+
+    let config = match Config::new() {
+        Ok(config) => Arc::new(config),
+        Err(err) => {
+            println!("{err}");
+            return Err(Box::new(err));
+        }
+    };
 
     let (event_bus, event_bus_handle) = EventBus::new();
     thread::spawn(move || {
@@ -69,7 +64,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             event_bus_handle.clone(),
             dbus_client.clone(),
         )),
-        Arc::new(Display::new(args.clone(), event_bus_handle.clone())),
+        Arc::new(Display::new(
+            args.clone(),
+            config.clone(),
+            event_bus_handle.clone(),
+        )),
     ];
 
     let mut handles = vec![];

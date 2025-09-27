@@ -89,11 +89,26 @@ Use these placeholders in your `--format` template:
 - `%title%` - Song title
 - `%album%` - Album name
 - `%player%` - Player name (spotify, firefox, etc.)
+- `%player-icon%` - Configurable icon to show for specific players (see `~/.config/waybar-module-music/config.toml`)
 
 **Example:**
 ```bash
 waybar-module-music --format "🎵 %artist% | %title%" --marquee --title-width 25
 ```
+
+### Configuring per-player icons
+
+You can find a config file at `~/.config/waybar-module-music/config.toml` where you can configure per-player icons.
+
+```toml
+[icons.players]
+sample-player = "🔊"
+default = ""
+```
+
+It works by doing a partial match against a player's name. So `spot` would match with Spotify, and anything else that contains `spot` in its name.
+
+You can also configure a default value that will be shown for any players with no configured text/icon.
 
 ### Example Configurations
 
