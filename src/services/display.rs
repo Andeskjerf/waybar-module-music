@@ -117,7 +117,7 @@ impl Display {
 
         fields.insert("album", TextEffect::new());
         fields.insert("player", TextEffect::new());
-        fields.insert("player_icon", TextEffect::new());
+        fields.insert("player-icon", TextEffect::new());
 
         fields
     }
@@ -167,20 +167,13 @@ impl Display {
         }
     }
 
-    fn set_text_effect_field(
-        fields: &mut HashMap<&str, TextEffect>,
-        old_value: &str,
-        new_value: &str,
-        field: &str,
-    ) {
-        if old_value != new_value {
-            match fields.get_mut(field) {
-                Some(field) => {
-                    field.set_effect_text(new_value.to_string());
-                    field.override_last_drawn(new_value.to_string());
-                }
-                None => error!("failed to get '{field}' field"),
+    fn set_text_effect_field(fields: &mut HashMap<&str, TextEffect>, value: &str, field: &str) {
+        match fields.get_mut(field) {
+            Some(field) => {
+                field.set_effect_text(value.to_string());
+                field.override_last_drawn(value.to_string());
             }
+            None => error!("failed to get '{field}' field"),
         }
     }
 
@@ -210,29 +203,15 @@ impl Display {
             match msg {
                 DisplayMessages::PlayerStateChanged(state) => {
                     if let Some(player_state) = player_state {
+                        Display::set_text_effect_field(&mut fields, &state.title, "title");
+                        Display::set_text_effect_field(&mut fields, &state.artist, "artist");
+                        Display::set_text_effect_field(&mut fields, &state.album, "album");
+                        Display::set_text_effect_field(&mut fields, &state.player_name, "player");
                         Display::set_text_effect_field(
                             &mut fields,
-                            &player_state.title,
-                            &state.title,
-                            "title",
-                        );
-                        Display::set_text_effect_field(
-                            &mut fields,
-                            &player_state.artist,
-                            &state.artist,
-                            "artist",
-                        );
-                        Display::set_text_effect_field(
-                            &mut fields,
-                            &player_state.album,
-                            &state.album,
-                            "album",
-                        );
-                        Display::set_text_effect_field(
-                            &mut fields,
-                            &player_state.player_name,
-                            &state.player_name,
-                            "player",
+                            self.config
+                                .get_player_icon_by_partial_match(&player_state.player_name),
+                            "player-icon",
                         );
                     }
                     player_state = Some(state);
@@ -318,7 +297,7 @@ impl Display {
             ),
             (
                 "player-icon",
-                fields.get_mut("player_icon").unwrap().draw(
+                fields.get_mut("player-icon").unwrap().draw(
                     self.config
                         .get_player_icon_by_partial_match(&player_state.player_name),
                 ),
