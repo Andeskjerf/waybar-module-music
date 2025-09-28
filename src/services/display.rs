@@ -293,11 +293,17 @@ impl Display {
             ),
             (
                 "title",
-                fields.get_mut("title").unwrap().draw(&player_state.title),
+                format!(
+                    "\u{2063}{}\u{2063}",
+                    fields.get_mut("title").unwrap().draw(&player_state.title)
+                ),
             ),
             (
                 "artist",
-                fields.get_mut("artist").unwrap().draw(&player_state.artist),
+                format!(
+                    "\u{2063}{}\u{2063}",
+                    fields.get_mut("artist").unwrap().draw(&player_state.artist)
+                ),
             ),
             (
                 "album",
