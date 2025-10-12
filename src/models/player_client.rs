@@ -10,11 +10,14 @@ use crate::{
     },
 };
 
+use super::mpris_seeked::MprisSeeked;
+
 #[derive(Debug)]
 pub struct PlayerClient {
     player_name: String,
     metadata: MprisMetadata,
     playback_state: Option<MprisPlayback>,
+    current_position: i64,
     pub last_updated: u64,
     // does this make sense?
     // to let the player object itself report its state, or should the manager do that?
@@ -27,6 +30,7 @@ impl PlayerClient {
             player_name,
             event_bus,
             metadata,
+            current_position: -1,
             last_updated: 0,
             playback_state: None,
         }
@@ -72,5 +76,9 @@ impl PlayerClient {
     pub fn update_playback_state(&mut self, playback_state: MprisPlayback) {
         self.playback_state = Some(playback_state);
         self.publish_state();
+    }
+
+    pub fn update_position(&mut self, mpris_seeked: MprisSeeked) {
+        self.current_position = mpris_seeked.timestamp;
     }
 }

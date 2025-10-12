@@ -12,7 +12,7 @@ impl MprisSeeked {
     pub fn new(player_id: String) -> Self {
         Self {
             player_id,
-            timestamp: 0,
+            timestamp: -1,
         }
     }
 
