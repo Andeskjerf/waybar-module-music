@@ -2,11 +2,12 @@ use std::{collections::HashMap, fmt::Display, sync::mpsc};
 
 use log::{debug, error, info, warn};
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone)]
 pub enum EventType {
     PlayerStateChanged,
     PlayerSongChanged,
     PlaybackChanged,
+    Seeked,
     ParseError,
     Unknown(String),
 }
@@ -20,6 +21,7 @@ impl Display for EventType {
                 EventType::PlayerStateChanged => "PlayerStateChanged",
                 EventType::PlayerSongChanged => "PlayerSongChanged",
                 EventType::PlaybackChanged => "PlaybackChanged",
+                EventType::Seeked => "Seeked",
                 EventType::ParseError => "ParseError",
                 EventType::Unknown(_) => "Unknown",
             }
