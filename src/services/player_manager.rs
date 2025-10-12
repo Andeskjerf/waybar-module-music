@@ -40,52 +40,50 @@ impl PlayerManager {
     fn init_worker(self: Arc<Self>) {
         let (tx, rx) = mpsc::channel();
 
-        if let Some(rx) = self.event_bus.subscribe(EventType::PlaybackChanged) {
-            let tx = tx.clone();
-            thread::spawn(move || PlayerManager::listen_playback_changed(rx, tx));
-        } else {
-            error!("failed to spawn listener for playback changes");
-        }
-
-        if let Some(rx) = self.event_bus.subscribe(EventType::PlayerSongChanged) {
-            let tx = tx;
-            thread::spawn(move || PlayerManager::listen_song_changed(rx, tx));
-        } else {
-            error!("failed to spawn listener for song changes");
-        }
+        PlayerManager::subscribe_to_event(
+            self.event_bus.clone(),
+            EventType::PlaybackChanged,
+            tx.clone(),
+            PlayerManagerMessage::GotPlaybackState,
+        );
+        PlayerManager::subscribe_to_event(
+            self.event_bus.clone(),
+            EventType::PlayerSongChanged,
+            tx.clone(),
+            PlayerManagerMessage::GotMetadata,
+        );
 
         self.handle_events(rx);
     }
 
-    // TODO: this and listen_song_changed could potentially be a generic function, very similar
-    fn listen_playback_changed(
-        subscription_rx: Receiver<Vec<u8>>,
+    fn subscribe_to_event<T, F>(
+        event_bus: EventBusHandle,
+        event_type: EventType,
         tx: Sender<PlayerManagerMessage>,
-    ) {
-        loop {
-            let msg = subscription_rx.recv();
-            debug!("received playback update");
-            let (playback_state, _): (MprisPlayback, usize) = match msg {
-                Ok(encoded) => {
-                    bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
-                }
-                Err(err) => {
-                    warn!("failed to decode message in PlayerManager: {err}");
-                    continue;
-                }
-            };
-
-            if let Err(err) = tx.send(PlayerManagerMessage::GotPlaybackState(playback_state)) {
-                warn!("failed to send playback update in PlayerManager: {err}");
+        message_constructor: F,
+    ) where
+        T: bincode::Decode<()>,
+        F: Fn(T) -> PlayerManagerMessage + Send + 'static,
+    {
+        match event_bus.subscribe(event_type.clone()) {
+            Some(rx) => {
+                thread::spawn(move || PlayerManager::listen_for_event(rx, tx, message_constructor));
             }
+            None => error!("failed to spawn listener for {event_type:?}"),
         }
     }
 
-    fn listen_song_changed(subscription_rx: Receiver<Vec<u8>>, tx: Sender<PlayerManagerMessage>) {
+    fn listen_for_event<T, F>(
+        subscription_rx: Receiver<Vec<u8>>,
+        tx: Sender<PlayerManagerMessage>,
+        message: F,
+    ) where
+        T: bincode::Decode<()>,
+        F: Fn(T) -> PlayerManagerMessage,
+    {
         loop {
             let msg = subscription_rx.recv();
-            debug!("received metadata update");
-            let (metadata, _): (MprisMetadata, usize) = match msg {
+            let (playback_state, _): (T, usize) = match msg {
                 Ok(encoded) => {
                     bincode::decode_from_slice(&encoded[..], config::standard()).unwrap()
                 }
@@ -95,8 +93,8 @@ impl PlayerManager {
                 }
             };
 
-            if let Err(err) = tx.send(PlayerManagerMessage::GotMetadata(metadata)) {
-                warn!("failed to send metadata message: {err}");
+            if let Err(err) = tx.send(message(playback_state)) {
+                warn!("failed to send update in PlayerManager: {err}");
             }
         }
     }
