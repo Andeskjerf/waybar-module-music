@@ -6,9 +6,10 @@ use crate::{
     interfaces::dbus_client::DBusClient,
     models::{
         mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback, mpris_seeked::MprisSeeked,
-        player_client::PlayerClient,
+        player_client::PlayerClient, player_state::PlayerState,
     },
     services::runnable::Runnable,
+    utils::time::get_current_timestamp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -133,16 +134,15 @@ impl PlayerManager {
     ) {
         let player_id = mpris_metadata.player_id.clone();
         match players.entry(player_id.clone()) {
-            Entry::Occupied(mut e) => e.get_mut().update_metadata(mpris_metadata),
+            Entry::Occupied(mut e) => {
+                e.get_mut().update_metadata(mpris_metadata);
+                self.publish_player_state(e.get_mut());
+            }
             Entry::Vacant(e) => {
                 let identity = self.dbus_client.query_mediaplayer_identity(&player_id);
                 match identity {
                     Ok(identity) => {
-                        e.insert(PlayerClient::new(
-                            identity,
-                            self.event_bus.clone(),
-                            mpris_metadata,
-                        ));
+                        e.insert(PlayerClient::new(identity, mpris_metadata));
                     }
                     Err(err) => {
                         error!("failed to query media player identity, skipping message: {err}");
@@ -162,10 +162,11 @@ impl PlayerManager {
 
         if let Some(player) = players.get_mut(id) {
             player.update_playback_state(mpris_playback);
+            self.publish_player_state(player);
 
             // if the latest player is not playing, find the most recent one that is still playing and display that instead
             if !player.playing() {
-                PlayerManager::set_most_recent_player_as_active(players);
+                self.set_most_recent_player_as_active(players);
             }
         } else {
             error!("failed to get player during PlaybackState update");
@@ -182,6 +183,7 @@ impl PlayerManager {
 
         if let Some(player) = players.get_mut(id) {
             player.update_position(mpris_seeked);
+            self.publish_player_state(player);
         } else {
             error!("failed to get player during Seeked update");
         }
@@ -195,10 +197,7 @@ impl PlayerManager {
             if let Ok(metadata) = self.dbus_client.query_metadata(id) {
                 match self.dbus_client.query_mediaplayer_identity(id) {
                     Ok(identity) => {
-                        players.insert(
-                            id.to_owned(),
-                            PlayerClient::new(identity, self.event_bus.clone(), metadata),
-                        );
+                        players.insert(id.to_owned(), PlayerClient::new(identity, metadata));
                     }
                     Err(err) => {
                         error!("failed to query media player identity, skipping message: {err}");
@@ -210,14 +209,36 @@ impl PlayerManager {
         }
     }
 
-    fn set_most_recent_player_as_active(players: &mut HashMap<String, PlayerClient>) {
+    fn set_most_recent_player_as_active(&self, players: &mut HashMap<String, PlayerClient>) {
         if let Some((_, player)) = players
             .iter_mut()
             .filter(|(_, p)| p.playing())
             .max_by_key(|(_, p)| p.last_updated)
         {
-            player.publish_state();
+            self.publish_player_state(player);
         };
+    }
+
+    pub fn publish_player_state(&self, player: &mut PlayerClient) {
+        player.last_updated = get_current_timestamp();
+
+        match PlayerState::from_mpris_data(
+            player.name().to_owned(),
+            player.metadata(),
+            player.playback_state(),
+        ) {
+            Some(state) => match bincode::encode_to_vec(state, config::standard()) {
+                Ok(encoded) => self
+                    .event_bus
+                    .publish(EventType::PlayerStateChanged, encoded),
+                Err(err) => {
+                    warn!("failed to encode player state, skipping publish\n\n{err}");
+                }
+            },
+            None => {
+                warn!("failed to construct PlayerState. did we get empty metadata? skipping publish: {:?}", player.metadata());
+            }
+        }
     }
 }
 

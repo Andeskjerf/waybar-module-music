@@ -8,6 +8,7 @@ use crate::{
     models::{
         mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback, player_state::PlayerState,
     },
+    utils::time::get_current_timestamp,
 };
 
 use super::mpris_seeked::MprisSeeked;
@@ -21,23 +22,31 @@ pub struct PlayerClient {
     /// Timestamp for metadata or playback updates
     pub last_updated: u64,
     /// Timestamp for last timer event, like song progressing in time
-    last_tick: i64,
-    // does this make sense?
-    // to let the player object itself report its state, or should the manager do that?
-    event_bus: EventBusHandle,
+    last_tick: Option<u64>,
 }
 
 impl PlayerClient {
-    pub fn new(player_name: String, event_bus: EventBusHandle, metadata: MprisMetadata) -> Self {
+    pub fn new(player_name: String, metadata: MprisMetadata) -> Self {
         Self {
             player_name,
-            event_bus,
             metadata,
             current_position: -1,
             last_updated: 0,
-            last_tick: -1,
+            last_tick: None,
             playback_state: None,
         }
+    }
+
+    pub fn name(&self) -> &String {
+        &self.player_name
+    }
+
+    pub fn metadata(&self) -> MprisMetadata {
+        self.metadata.clone()
+    }
+
+    pub fn playback_state(&self) -> Option<MprisPlayback> {
+        self.playback_state.clone()
     }
 
     pub fn playing(&self) -> bool {
@@ -47,42 +56,16 @@ impl PlayerClient {
             .unwrap_or(false)
     }
 
-    pub fn publish_state(&mut self) {
-        self.last_updated = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("failed to get current timestamp")
-            .as_secs();
-
-        match PlayerState::from_mpris_data(
-            self.player_name.clone(),
-            self.metadata.clone(),
-            self.playback_state.clone(),
-        ) {
-            Some(state) => match bincode::encode_to_vec(state, config::standard()) {
-                Ok(encoded) => self
-                    .event_bus
-                    .publish(EventType::PlayerStateChanged, encoded),
-                Err(err) => {
-                    warn!("failed to encode player state, skipping publish\n\n{err}");
-                }
-            },
-            None => {
-                warn!("failed to construct PlayerState. did we get empty metadata? skipping publish: {:?}", self.metadata);
-            }
-        }
-    }
-
     pub fn update_metadata(&mut self, metadata: MprisMetadata) {
         self.metadata = metadata;
-        self.publish_state();
     }
 
     pub fn update_playback_state(&mut self, playback_state: MprisPlayback) {
         self.playback_state = Some(playback_state);
-        self.publish_state();
     }
 
     pub fn update_position(&mut self, mpris_seeked: MprisSeeked) {
         self.current_position = mpris_seeked.timestamp;
+        self.last_tick = Some(get_current_timestamp());
     }
 }

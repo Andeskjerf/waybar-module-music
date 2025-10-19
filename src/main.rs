@@ -16,6 +16,7 @@ mod helpers;
 mod interfaces;
 mod models;
 mod services;
+mod utils;
 
 fn init_logger(debug: bool) -> Result<(), Box<dyn std::error::Error>> {
     let cache_dir = helpers::dir::get_and_create_dir(dirs::cache_dir)?;
