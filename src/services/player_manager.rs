@@ -42,30 +42,23 @@ impl PlayerManager {
     fn init_worker(self: Arc<Self>) {
         let (tx, rx) = mpsc::channel();
 
-        PlayerManager::subscribe_to_event(
-            self.event_bus.clone(),
+        self.subscribe_to_event(
             EventType::PlaybackChanged,
             tx.clone(),
             PlayerManagerMessage::PlaybackState,
         );
-        PlayerManager::subscribe_to_event(
-            self.event_bus.clone(),
+        self.subscribe_to_event(
             EventType::PlayerSongChanged,
             tx.clone(),
             PlayerManagerMessage::Metadata,
         );
-        PlayerManager::subscribe_to_event(
-            self.event_bus.clone(),
-            EventType::Seeked,
-            tx.clone(),
-            PlayerManagerMessage::Seeked,
-        );
+        self.subscribe_to_event(EventType::Seeked, tx.clone(), PlayerManagerMessage::Seeked);
 
         self.handle_events(rx);
     }
 
     fn subscribe_to_event<T, F>(
-        event_bus: EventBusHandle,
+        self: &Arc<Self>,
         event_type: EventType,
         tx: Sender<PlayerManagerMessage>,
         message_constructor: F,
@@ -73,7 +66,7 @@ impl PlayerManager {
         T: bincode::Decode<()>,
         F: Fn(T) -> PlayerManagerMessage + Send + 'static,
     {
-        match event_bus.subscribe(event_type.clone()) {
+        match self.event_bus.subscribe(event_type.clone()) {
             Some(rx) => {
                 thread::spawn(move || PlayerManager::listen_for_event(rx, tx, message_constructor));
             }
