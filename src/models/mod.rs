@@ -5,3 +5,4 @@ pub mod mpris_playback;
 pub mod mpris_seeked;
 pub mod player_client;
 pub mod player_state;
+pub mod player_timer;

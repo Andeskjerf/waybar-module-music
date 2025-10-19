@@ -5,14 +5,14 @@ use log::error;
 #[derive(Debug, Default, Clone, Encode, Decode, PartialEq)]
 pub struct MprisSeeked {
     pub player_id: String,
-    pub timestamp: i64,
+    pub position: u128,
 }
 
 impl MprisSeeked {
     pub fn new(player_id: String) -> Self {
         Self {
             player_id,
-            timestamp: -1,
+            position: 0,
         }
     }
 
@@ -20,7 +20,7 @@ impl MprisSeeked {
         let mut result = MprisSeeked::new(msg.sender().unwrap().to_string());
 
         if let Some(position) = msg.get1::<i64>() {
-            result.timestamp = position;
+            result.position = position as u128;
             return result;
         }
 
