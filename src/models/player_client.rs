@@ -18,7 +18,10 @@ pub struct PlayerClient {
     metadata: MprisMetadata,
     playback_state: Option<MprisPlayback>,
     current_position: i64,
+    /// Timestamp for metadata or playback updates
     pub last_updated: u64,
+    /// Timestamp for last timer event, like song progressing in time
+    last_tick: i64,
     // does this make sense?
     // to let the player object itself report its state, or should the manager do that?
     event_bus: EventBusHandle,
@@ -32,6 +35,7 @@ impl PlayerClient {
             metadata,
             current_position: -1,
             last_updated: 0,
+            last_tick: -1,
             playback_state: None,
         }
     }
