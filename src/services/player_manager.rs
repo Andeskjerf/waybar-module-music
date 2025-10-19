@@ -114,47 +114,33 @@ impl PlayerManager {
 
             match msg {
                 PlayerManagerMessage::Metadata(mpris_metadata) => {
-                    PlayerManager::handle_metadata_event(
-                        &self.event_bus,
-                        &mut players,
-                        mpris_metadata,
-                        &self.dbus_client,
-                    )
+                    self.handle_metadata_event(&mut players, mpris_metadata)
                 }
                 PlayerManagerMessage::PlaybackState(mpris_playback) => {
-                    PlayerManager::handle_playback_event(
-                        &self.event_bus,
-                        &mut players,
-                        mpris_playback,
-                        &self.dbus_client,
-                    )
+                    self.handle_playback_event(&mut players, mpris_playback)
                 }
-                PlayerManagerMessage::Seeked(mpris_seeked) => PlayerManager::handle_seeked_event(
-                    &self.event_bus,
-                    &mut players,
-                    mpris_seeked,
-                    &self.dbus_client,
-                ),
+                PlayerManagerMessage::Seeked(mpris_seeked) => {
+                    self.handle_seeked_event(&mut players, mpris_seeked)
+                }
             };
         }
     }
 
     fn handle_metadata_event(
-        event_bus: &EventBusHandle,
+        &self,
         players: &mut HashMap<String, PlayerClient>,
         mpris_metadata: MprisMetadata,
-        dbus_client: &Arc<DBusClient>,
     ) {
         let player_id = mpris_metadata.player_id.clone();
         match players.entry(player_id.clone()) {
             Entry::Occupied(mut e) => e.get_mut().update_metadata(mpris_metadata),
             Entry::Vacant(e) => {
-                let identity = dbus_client.query_mediaplayer_identity(&player_id);
+                let identity = self.dbus_client.query_mediaplayer_identity(&player_id);
                 match identity {
                     Ok(identity) => {
                         e.insert(PlayerClient::new(
                             identity,
-                            event_bus.clone(),
+                            self.event_bus.clone(),
                             mpris_metadata,
                         ));
                     }
@@ -167,13 +153,12 @@ impl PlayerManager {
     }
 
     fn handle_playback_event(
-        event_bus: &EventBusHandle,
+        &self,
         players: &mut HashMap<String, PlayerClient>,
         mpris_playback: MprisPlayback,
-        dbus_client: &Arc<DBusClient>,
     ) {
         let id = &mpris_playback.player_id;
-        PlayerManager::query_player_if_not_exists(event_bus, dbus_client, players, id);
+        self.query_player_if_not_exists(players, id);
 
         if let Some(player) = players.get_mut(id) {
             player.update_playback_state(mpris_playback);
@@ -188,13 +173,12 @@ impl PlayerManager {
     }
 
     fn handle_seeked_event(
-        event_bus: &EventBusHandle,
+        &self,
         players: &mut HashMap<String, PlayerClient>,
         mpris_seeked: MprisSeeked,
-        dbus_client: &Arc<DBusClient>,
     ) {
         let id = &mpris_seeked.player_id;
-        PlayerManager::query_player_if_not_exists(event_bus, dbus_client, players, id);
+        self.query_player_if_not_exists(players, id);
 
         if let Some(player) = players.get_mut(id) {
             player.update_position(mpris_seeked);
@@ -203,22 +187,17 @@ impl PlayerManager {
         }
     }
 
-    fn query_player_if_not_exists(
-        event_bus: &EventBusHandle,
-        dbus_client: &Arc<DBusClient>,
-        players: &mut HashMap<String, PlayerClient>,
-        id: &str,
-    ) {
+    fn query_player_if_not_exists(&self, players: &mut HashMap<String, PlayerClient>, id: &str) {
         if !players.contains_key(id) {
             debug!(
                 "got seeked message but player does not exist, attempting to query for metadata"
             );
-            if let Ok(metadata) = dbus_client.query_metadata(id) {
-                match dbus_client.query_mediaplayer_identity(id) {
+            if let Ok(metadata) = self.dbus_client.query_metadata(id) {
+                match self.dbus_client.query_mediaplayer_identity(id) {
                     Ok(identity) => {
                         players.insert(
                             id.to_owned(),
-                            PlayerClient::new(identity, event_bus.clone(), metadata),
+                            PlayerClient::new(identity, self.event_bus.clone(), metadata),
                         );
                     }
                     Err(err) => {
