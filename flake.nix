@@ -21,14 +21,25 @@
         "x86_64-linux"
       ];
       imports = [
+        flake-parts.flakeModules.easyOverlay
         ./nix/shell.nix
         ./nix/rust-toolchain.nix
         ./nix/build.nix
       ];
 
-      perSystem = {pkgs, ...}: {
+      flake = {
+      };
+      perSystem = {
+        config,
+        pkgs,
+        ...
+      }: {
         # our preferred formatter. Like rustfmt, alejandra is unforgiving
         formatter = pkgs.alejandra;
+        # set overlays.default to be our
+        overlayAttrs = {
+          inherit (config.packages) waybar-module-music;
+        };
       };
     };
 }
