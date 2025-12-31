@@ -1,8 +1,5 @@
 use crate::{
-    event_bus::{EventBusHandle, EventType},
-    models::{
-        mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback, player_state::PlayerState,
-    },
+    models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
     utils::time::get_current_timestamp,
 };
 
@@ -40,6 +37,10 @@ impl PlayerClient {
 
     pub fn playback_state(&self) -> Option<MprisPlayback> {
         self.playback_state.clone()
+    }
+
+    pub fn position(&self) -> u128 {
+        self.current_position
     }
 
     pub fn playing(&self) -> bool {

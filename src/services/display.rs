@@ -5,6 +5,7 @@ use crate::{
     effects::{ellipsis::Ellipsis, marquee::Marquee, text_effect::TextEffect},
     event_bus::{EventBusHandle, EventType},
     models::{args::Args, config::Config, player_state::PlayerState},
+    utils::time,
 };
 
 use super::runnable::Runnable;
@@ -118,6 +119,8 @@ impl Display {
         fields.insert("album", TextEffect::new());
         fields.insert("player", TextEffect::new());
         fields.insert("player-icon", TextEffect::new());
+        fields.insert("position", TextEffect::new());
+        fields.insert("length", TextEffect::new());
 
         fields
     }
@@ -207,6 +210,16 @@ impl Display {
                         Display::set_text_effect_field(&mut fields, &state.artist, "artist");
                         Display::set_text_effect_field(&mut fields, &state.album, "album");
                         Display::set_text_effect_field(&mut fields, &state.player_name, "player");
+                        Display::set_text_effect_field(
+                            &mut fields,
+                            &time::microseconds_to_formatted_time(player_state.length as u128),
+                            "length",
+                        );
+                        Display::set_text_effect_field(
+                            &mut fields,
+                            &time::microseconds_to_formatted_time(player_state.position),
+                            "position",
+                        );
                         Display::set_text_effect_field(
                             &mut fields,
                             self.config
@@ -301,6 +314,22 @@ impl Display {
                     self.config
                         .get_player_icon_by_partial_match(&player_state.player_name),
                 ),
+            ),
+            (
+                "length",
+                fields
+                    .get_mut("length")
+                    .unwrap()
+                    .draw(&time::microseconds_to_formatted_time(
+                        player_state.length as u128,
+                    )),
+            ),
+            (
+                "position",
+                fields
+                    .get_mut("position")
+                    .unwrap()
+                    .draw(&time::microseconds_to_formatted_time(player_state.position)),
             ),
         ]
         .into_iter()

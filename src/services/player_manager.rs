@@ -73,6 +73,9 @@ impl PlayerManager {
         main_tx: Sender<PlayerManagerMessage>,
         rx: Receiver<PlayerManagerMessage>,
     ) {
+        // since we're trying to avoid locks and instead want to rely on channels & messages,
+        // we unfortunately have to maintain two separate HashMap's of our player data
+        // this HashMap only contains data relevant to tick a player's position
         let mut players: HashMap<String, PlayerTimer> = HashMap::new();
 
         loop {
@@ -214,7 +217,10 @@ impl PlayerManager {
                     self.handle_seeked_event(&mut players, mpris_seeked)
                 }
                 PlayerManagerMessage::PlayerTick((id, position)) => match players.get_mut(&id) {
-                    Some(player) => player.update_position(position),
+                    Some(player) => {
+                        player.update_position(position);
+                        self.publish_player_state(player);
+                    }
                     None => warn!(
                         "PlayerTick event: tried to get player '{id}', but no such player exists"
                     ),
@@ -328,6 +334,7 @@ impl PlayerManager {
             player.name().to_owned(),
             player.metadata(),
             player.playback_state(),
+            player.position(),
         ) {
             Some(state) => match bincode::encode_to_vec(state, config::standard()) {
                 Ok(encoded) => self
