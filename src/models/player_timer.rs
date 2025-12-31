@@ -4,7 +4,7 @@ use std::time::Instant;
 pub struct PlayerTimer {
     playing: bool,
     position: u128,
-    rate: u64,
+    rate: f64,
     last_update: Instant,
 }
 
@@ -13,7 +13,7 @@ impl PlayerTimer {
         Self {
             playing: false,
             position: 0,
-            rate: 1,
+            rate: 1.0,
             last_update: Instant::now(),
         }
     }
@@ -21,7 +21,7 @@ impl PlayerTimer {
     pub fn tick(&mut self, increment_ms: u128) {
         // position is in microseconds
         // 1000 == 1 millisecond
-        self.position += 1000 * increment_ms * self.rate as u128;
+        self.position += 1000 * (increment_ms as f64 * self.rate()) as u128;
         self.last_update = Instant::now();
     }
 
@@ -29,8 +29,16 @@ impl PlayerTimer {
         self.position = position;
     }
 
-    pub fn rate(&self) -> u64 {
-        self.rate
+    pub fn set_rate(&mut self, rate: f64) {
+        self.rate = rate;
+    }
+
+    pub fn rate(&self) -> f64 {
+        if self.rate == 0.0 {
+            1.0
+        } else {
+            self.rate
+        }
     }
 
     pub fn position(&self) -> u128 {

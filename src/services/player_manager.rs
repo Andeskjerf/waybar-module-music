@@ -5,8 +5,9 @@ use crate::{
     event_bus::{EventBusHandle, EventType},
     interfaces::dbus_client::DBusClient,
     models::{
-        mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback, mpris_seeked::MprisSeeked,
-        player_client::PlayerClient, player_state::PlayerState, player_timer::PlayerTimer,
+        mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback, mpris_rate::MprisRate,
+        mpris_seeked::MprisSeeked, player_client::PlayerClient, player_state::PlayerState,
+        player_timer::PlayerTimer,
     },
     services::runnable::Runnable,
     utils::time::get_current_timestamp,
@@ -26,6 +27,7 @@ enum PlayerManagerMessage {
     Metadata(MprisMetadata),
     PlaybackState(MprisPlayback),
     Seeked(MprisSeeked),
+    Rate(MprisRate),
     PlayerTick((String, u128)),
 }
 
@@ -64,6 +66,7 @@ impl PlayerManager {
             PlayerManagerMessage::Metadata,
         );
         self.subscribe_to_event(EventType::Seeked, tx.clone(), PlayerManagerMessage::Seeked);
+        self.subscribe_to_event(EventType::Rate, tx.clone(), PlayerManagerMessage::Rate);
 
         self.handle_events(rx, timer_tx);
     }
@@ -123,6 +126,19 @@ impl PlayerManager {
                             }
                         }
                     }
+                    PlayerManagerMessage::Rate(mpris_rate) => {
+                        let id = &mpris_rate.player_id;
+                        match players.entry(id.clone()) {
+                            Entry::Occupied(mut e) => {
+                                e.get_mut().set_rate(mpris_rate.rate);
+                            }
+                            Entry::Vacant(e) => {
+                                let mut timer = PlayerTimer::new();
+                                timer.set_rate(mpris_rate.rate);
+                                e.insert(timer);
+                            }
+                        }
+                    }
                     // we don't care about any other events
                     _ => continue,
                 }
@@ -140,8 +156,7 @@ impl PlayerManager {
             // TODO: need to take into account the rate of playback
             let increment_ms: u128 = 250;
             thread::sleep(Duration::from_millis(
-                (increment_ms - (player.time_ms_since_last_update() / player.rate() as u128))
-                    as u64,
+                (increment_ms - player.time_ms_since_last_update()) as u64,
             ));
 
             player.tick(increment_ms);
@@ -216,6 +231,11 @@ impl PlayerManager {
                         warn!("PlayerManager: failed to re-send message to timer thread! {err}");
                     }
                     self.handle_seeked_event(&mut players, mpris_seeked)
+                }
+                PlayerManagerMessage::Rate(_) => {
+                    if let Err(err) = timer_tx.send(msg) {
+                        warn!("PlayerManager: failed to re-send message to timer thread! {err}");
+                    }
                 }
                 PlayerManagerMessage::PlayerTick((id, position)) => match players.get_mut(&id) {
                     Some(player) => {

@@ -13,7 +13,7 @@ use crate::{
     interfaces::dbus_client::DBusClient,
     models::{
         args::Args, mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback,
-        mpris_seeked::MprisSeeked,
+        mpris_rate::MprisRate, mpris_seeked::MprisSeeked,
     },
 };
 
@@ -42,10 +42,18 @@ impl DBusMonitor {
         // some events can be determined by simply checking their member
         // while others may require more manual parsing
         if let Some(member) = msg.member() {
-            if member.to_lowercase().as_str() == "seeked" {
-                return EventType::Seeked;
+            match member.to_lowercase().as_str() {
+                "seeked" => {
+                    return EventType::Seeked;
+                }
+                "rate" => {
+                    return EventType::Rate;
+                }
+                _ => (),
             }
         }
+
+        info!("{:?}", msg);
 
         for elem in msg.iter_init() {
             if let Some(mut args) = elem.as_iter() {
@@ -54,6 +62,7 @@ impl DBusMonitor {
                         Some(arg_type) => match arg_type {
                             "Metadata" => return EventType::PlayerSongChanged,
                             "PlaybackStatus" => return EventType::PlaybackChanged,
+                            "Rate" => return EventType::Rate,
                             _ => return EventType::Unknown(arg_type.to_string()),
                         },
                         None => return EventType::ParseError,
@@ -114,12 +123,16 @@ impl DBusMonitor {
             EventType::Seeked => {
                 bincode::encode_to_vec(MprisSeeked::from_dbus_message(msg), config::standard())
             }
+            EventType::Rate => {
+                bincode::encode_to_vec(MprisRate::from_dbus_message(msg), config::standard())
+            }
             EventType::ParseError => {
                 warn!("failed to parse message. skipping");
                 return true;
             }
             EventType::Unknown(found_arg) => {
                 warn!("got unknown event with name '{found_arg}'. skipping");
+                info!("{:?}", msg);
                 return true;
             }
             _ => return true, // ignore other messages
