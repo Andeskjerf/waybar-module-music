@@ -307,10 +307,6 @@ impl PlayerManager {
         self.query_player_if_not_exists(players, id);
 
         if let Some(player) = players.get_mut(id) {
-            info!(
-                "we're updating based on a seek event, using the following data: {:?}",
-                mpris_seeked
-            );
             player.update_position(mpris_seeked.position);
             self.publish_player_state(player);
         } else {
