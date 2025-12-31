@@ -88,6 +88,8 @@ Use these placeholders in your `--format` template:
 - `%artist%` - Artist name
 - `%title%` - Song title
 - `%album%` - Album name
+- `%position%` - Current position of media, in this format: `mm:ss`
+- `%length%` - Media length, in this format: `mm:ss`
 - `%player%` - Player name (spotify, firefox, etc.)
 - `%player-icon%` - Configurable icon to show for specific players (see `~/.config/waybar-module-music/config.toml`)
 
