@@ -1,6 +1,6 @@
 use bincode::{Decode, Encode};
 use dbus::Message;
-use log::error;
+use log::{error, info};
 
 #[derive(Debug, Default, Clone, Encode, Decode, PartialEq)]
 pub struct MprisRate {
@@ -19,12 +19,25 @@ impl MprisRate {
     pub fn from_dbus_message(msg: &Message) -> Self {
         let mut result = MprisRate::new(msg.sender().unwrap().to_string());
 
-        if let Some(rate) = msg.get1::<f64>() {
-            result.rate = rate;
-            return result;
+        for elem in msg.iter_init() {
+            if let Some(args) = elem.as_iter() {
+                if let Some(kv) = args.collect::<Vec<_>>().chunks(2).next() {
+                    info!("kv: {:?}", kv);
+                    if let (Some(key), Some(value)) = (kv[0].as_str(), kv[1].as_f64()) {
+                        if key != "Rate" {
+                            error!("tried to create MprisRate but message does not conform to expected format");
+                            return result;
+                        }
+                        result.rate = value;
+                        return result;
+                    } else {
+                        error!("got unexpected key-value pair, types do not conform to expected format");
+                        return result;
+                    }
+                }
+            };
         }
 
-        error!("got to end of MprisRate constructor without returning during construction, this should not happen");
         result
     }
 }
