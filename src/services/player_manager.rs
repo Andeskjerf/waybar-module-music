@@ -153,13 +153,13 @@ impl PlayerManager {
                 None => continue,
             };
 
-            // TODO: need to take into account the rate of playback
-            let increment_ms: u128 = 250;
+            let increment_ms: u128 = 200;
+            let diff = increment_ms - player.time_ms_since_last_update();
+            player.tick(diff);
             thread::sleep(Duration::from_millis(
-                (increment_ms - player.time_ms_since_last_update()) as u64,
+                (diff) as u64,
             ));
 
-            player.tick(increment_ms);
             if let Err(error) = main_tx.send(PlayerManagerMessage::PlayerTick((
                 id.clone(),
                 player.position(),
