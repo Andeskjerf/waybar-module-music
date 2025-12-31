@@ -252,6 +252,7 @@ impl PlayerManager {
 
         if let Some(player) = players.get_mut(id) {
             player.update_playback_state(mpris_playback);
+            self.publish_player_state(player);
 
             // if the latest player is not playing, find the most recent one that is still playing and display that instead
             if !player.playing() {
