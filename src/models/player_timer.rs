@@ -1,20 +1,19 @@
 use std::time::Instant;
 
+#[derive(Debug)]
 pub struct PlayerTimer {
-    name: String,
+    id: String,
     playing: bool,
-    length: u64,
     position: u128,
     rate: u64,
     last_update: Instant,
 }
 
 impl PlayerTimer {
-    pub fn new(name: String, length: u64) -> Self {
+    pub fn new(id: String) -> Self {
         Self {
-            name: name.to_string(),
+            id: id.to_string(),
             playing: false,
-            length,
             position: 0,
             rate: 1,
             last_update: Instant::now(),
@@ -28,8 +27,16 @@ impl PlayerTimer {
         self.last_update = Instant::now();
     }
 
+    pub fn set_position(&mut self, position: u128) {
+        self.position = position;
+    }
+
     pub fn position(&self) -> u128 {
         self.position
+    }
+
+    pub fn set_playing(&mut self, playing: bool) {
+        self.playing = playing;
     }
 
     pub fn is_playing(&self) -> bool {

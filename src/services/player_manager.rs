@@ -83,43 +83,46 @@ impl PlayerManager {
 
             // if there are no players currently playing, we want to block and listen until we recieve a message
             let msg = if players.iter().any(|(_, p)| p.is_playing()) {
-                match rx.try_recv() {
-                    Ok(msg) => msg,
-                    Err(err) => {
-                        warn!("PlayerManager timer thread failed to receive message, continuing anyway: {err}");
-                        continue;
-                    }
-                }
+                rx.try_recv().ok()
             } else {
                 match rx.recv() {
-                    Ok(msg) => msg,
-                    Err(err) => {
-                        warn!("PlayerManager timer thread failed to receive message, continuing anyway: {err}");
-                        continue;
-                    }
+                    Ok(msg) => Some(msg),
+                    Err(_) => continue,
                 }
             };
 
-            match msg {
-                // we must handle metadata events so that we know the full length of the media playing
-                PlayerManagerMessage::Metadata(mpris_metadata) => {
-                    let id = mpris_metadata.player_id;
-                    match players.entry(id.clone()) {
-                        Entry::Occupied(mut e) => {
-                            e.insert(PlayerTimer::new(id.clone(), mpris_metadata.length.unwrap()));
-                        }
-                        Entry::Vacant(e) => {
-                            e.insert(PlayerTimer::new(id.clone(), mpris_metadata.length.unwrap()));
+            if let Some(msg) = msg {
+                match msg {
+                    PlayerManagerMessage::PlaybackState(mpris_playback) => {
+                        let id = &mpris_playback.player_id;
+                        match players.entry(id.clone()) {
+                            Entry::Occupied(mut e) => {
+                                e.get_mut().set_playing(mpris_playback.is_playing());
+                            }
+                            Entry::Vacant(e) => {
+                                let mut timer = PlayerTimer::new(id.clone());
+                                timer.set_playing(mpris_playback.is_playing());
+                                e.insert(timer);
+                            }
                         }
                     }
+                    // and we must obviously handle seeked events to update where we're at in the media
+                    PlayerManagerMessage::Seeked(mpris_seeked) => {
+                        let id = &mpris_seeked.player_id;
+                        match players.entry(id.clone()) {
+                            Entry::Occupied(mut e) => {
+                                e.get_mut().set_position(mpris_seeked.position);
+                            }
+                            Entry::Vacant(e) => {
+                                let mut timer = PlayerTimer::new(id.clone());
+                                timer.set_position(mpris_seeked.position);
+                                e.insert(timer);
+                            }
+                        }
+                    }
+                    // we don't care about any other events
+                    _ => continue,
                 }
-                PlayerManagerMessage::PlaybackState(mpris_playback) => {
-                    let id = mpris_playback.player_id;
-                }
-                // and we must obviously handle seeked events to update where we're at in the media
-                PlayerManagerMessage::Seeked(mpris_seeked) => todo!(),
-                // we don't care about any other events
-                _ => (),
             }
 
             let (id, player) = match players
@@ -194,17 +197,20 @@ impl PlayerManager {
                 }
             };
 
-            if let Err(err) = timer_tx.send(msg.clone()) {
-                warn!("PlayerManager: failed to re-send message to timer thread! {err}");
-            }
-            match msg {
+            match msg.clone() {
                 PlayerManagerMessage::Metadata(mpris_metadata) => {
                     self.handle_metadata_event(&mut players, mpris_metadata);
                 }
                 PlayerManagerMessage::PlaybackState(mpris_playback) => {
+                    if let Err(err) = timer_tx.send(msg) {
+                        warn!("PlayerManager: failed to re-send message to timer thread! {err}");
+                    }
                     self.handle_playback_event(&mut players, mpris_playback)
                 }
                 PlayerManagerMessage::Seeked(mpris_seeked) => {
+                    if let Err(err) = timer_tx.send(msg) {
+                        warn!("PlayerManager: failed to re-send message to timer thread! {err}");
+                    }
                     self.handle_seeked_event(&mut players, mpris_seeked)
                 }
                 PlayerManagerMessage::PlayerTick((id, position)) => match players.get_mut(&id) {
