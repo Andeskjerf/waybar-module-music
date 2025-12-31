@@ -1,6 +1,6 @@
 use bincode::{Decode, Encode};
 use dbus::Message;
-use log::{error, info};
+use log::error;
 
 #[derive(Debug, Default, Clone, Encode, Decode, PartialEq)]
 pub struct MprisRate {
@@ -22,7 +22,6 @@ impl MprisRate {
         for elem in msg.iter_init() {
             if let Some(args) = elem.as_iter() {
                 if let Some(kv) = args.collect::<Vec<_>>().chunks(2).next() {
-                    info!("kv: {:?}", kv);
                     if let (Some(key), Some(value)) = (kv[0].as_str(), kv[1].as_f64()) {
                         if key != "Rate" {
                             error!("tried to create MprisRate but message does not conform to expected format");
