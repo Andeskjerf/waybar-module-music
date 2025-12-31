@@ -64,7 +64,6 @@ impl Config {
     pub fn get_player_icon_by_partial_match(&self, player_name: &str) -> &String {
         for (k, v) in self.icons.players.iter() {
             if player_name.to_lowercase().contains(&k.to_lowercase()) {
-                log::debug!("player icon ({k}) matched with player: {player_name}");
                 return v;
             }
         }

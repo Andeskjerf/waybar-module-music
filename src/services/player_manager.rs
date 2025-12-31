@@ -103,7 +103,7 @@ impl PlayerManager {
                                 e.get_mut().set_playing(mpris_playback.is_playing());
                             }
                             Entry::Vacant(e) => {
-                                let mut timer = PlayerTimer::new(id.clone());
+                                let mut timer = PlayerTimer::new();
                                 timer.set_playing(mpris_playback.is_playing());
                                 e.insert(timer);
                             }
@@ -117,7 +117,7 @@ impl PlayerManager {
                                 e.get_mut().set_position(mpris_seeked.position);
                             }
                             Entry::Vacant(e) => {
-                                let mut timer = PlayerTimer::new(id.clone());
+                                let mut timer = PlayerTimer::new();
                                 timer.set_position(mpris_seeked.position);
                                 e.insert(timer);
                             }
@@ -140,7 +140,8 @@ impl PlayerManager {
             // TODO: need to take into account the rate of playback
             let increment_ms: u128 = 250;
             thread::sleep(Duration::from_millis(
-                (increment_ms - player.time_ms_since_last_update()) as u64,
+                (increment_ms - (player.time_ms_since_last_update() / player.rate() as u128))
+                    as u64,
             ));
 
             player.tick(increment_ms);

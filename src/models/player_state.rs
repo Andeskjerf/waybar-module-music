@@ -51,7 +51,7 @@ impl PlayerState {
             .unwrap_or_default()
             .playing
             .map(|elem| elem == "Playing");
-        let length = metadata.length.unwrap();
+        let length = metadata.length.unwrap_or(0);
 
         Some(PlayerState::new(
             player_id,
