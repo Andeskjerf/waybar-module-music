@@ -21,7 +21,7 @@ impl PlayerTimer {
     pub fn tick(&mut self, increment_ms: u128) {
         // position is in microseconds
         // 1000 == 1 millisecond
-        self.position += 1000 * (increment_ms as f64 * self.rate()) as u128;
+        self.position += 1000 * ((increment_ms as f64 * self.rate()) as u128);
         self.last_update = Instant::now();
     }
 

@@ -27,12 +27,11 @@ impl Marquee {
 }
 
 impl Effect for Marquee {
-    fn apply(&mut self, text: String) -> String {
+    fn apply(&mut self, mut text: String) -> String {
         if text.len() <= self.max_width as usize || self.max_width == 0 {
             return text;
         }
 
-        let mut text = text.clone();
         text.push_str(PADDING);
 
         let mut result = String::new();

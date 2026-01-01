@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::effects::effect::Effect;
 
-#[derive(Default)]
 pub struct TextEffect {
+    text: String,
     last_drawn: String,
     effects: Arc<Mutex<Vec<Box<dyn Effect>>>>,
     update_tick: Arc<Mutex<bool>>,
@@ -15,6 +15,7 @@ impl TextEffect {
         let effects = Arc::new(Mutex::new(vec![]));
 
         Self {
+            text: String::new(),
             last_drawn: String::new(),
             effects,
             update_tick,
@@ -22,8 +23,10 @@ impl TextEffect {
     }
 
     pub fn set_effect_text(&mut self, text: String) {
+        self.text = text.clone();
         self.effects.lock().unwrap().iter_mut().for_each(|effect| {
             effect.set_text(text.clone());
+            effect.apply(text.clone());
         });
     }
 
@@ -33,6 +36,10 @@ impl TextEffect {
             .unwrap()
             .iter()
             .any(|elem| elem.is_active())
+    }
+
+    pub fn current_text(&self) -> &str {
+        &self.text
     }
 
     pub fn should_redraw(&mut self) {
@@ -69,7 +76,9 @@ impl TextEffect {
         for effect in self.effects.lock().unwrap().iter_mut() {
             result = effect.apply(result);
         }
-        self.last_drawn = result.clone();
+        if !result.is_empty() {
+            self.last_drawn = result.clone();
+        }
         result
     }
 }

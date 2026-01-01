@@ -173,8 +173,10 @@ impl Display {
     fn set_text_effect_field(fields: &mut HashMap<&str, TextEffect>, value: &str, field: &str) {
         match fields.get_mut(field) {
             Some(field) => {
-                field.set_effect_text(value.to_string());
-                field.override_last_drawn(value.to_string());
+                if field.current_text() != value {
+                    field.set_effect_text(value.to_string());
+                    field.override_last_drawn(value.to_string());
+                }
             }
             None => error!("failed to get '{field}' field"),
         }
@@ -228,9 +230,6 @@ impl Display {
                         );
                     }
                     player_state = Some(state);
-                    fields.iter_mut().for_each(|(_, v)| {
-                        v.should_redraw();
-                    });
                     self.draw(&player_state, &mut fields);
                     if let Err(err) = effect_tx.send(self.should_effects_be_redrawn(&fields)) {
                         error!("failed to notify effects thread: {err}");

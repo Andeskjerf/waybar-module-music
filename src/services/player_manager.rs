@@ -76,7 +76,7 @@ impl PlayerManager {
         main_tx: Sender<PlayerManagerMessage>,
         rx: Receiver<PlayerManagerMessage>,
     ) {
-        // since we're trying to avoid locks and instead want to rely on channels & messages,
+        // since we're trying to avoid locks & shared state, we want to rely on channels & messages,
         // we unfortunately have to maintain two separate HashMap's of our player data
         // this HashMap only contains data relevant to tick a player's position
         let mut players: HashMap<String, PlayerTimer> = HashMap::new();
@@ -97,6 +97,9 @@ impl PlayerManager {
                 }
             };
 
+            // TODO: this could be improved
+            // every message is handled almost identically
+            // the only difference being the value we wish to set & get
             if let Some(msg) = msg {
                 match msg {
                     PlayerManagerMessage::PlaybackState(mpris_playback) => {
@@ -112,7 +115,6 @@ impl PlayerManager {
                             }
                         }
                     }
-                    // and we must obviously handle seeked events to update where we're at in the media
                     PlayerManagerMessage::Seeked(mpris_seeked) => {
                         let id = &mpris_seeked.player_id;
                         match players.entry(id.clone()) {
@@ -153,12 +155,15 @@ impl PlayerManager {
                 None => continue,
             };
 
-            let increment_ms: u128 = 200;
+            // TODO: to better sync the module & player,
+            // we could figure out the difference between our clock and the player
+            // e.g, on first run, delay the amount required to get an even, for example, 250ms difference
+            // between the player and the module
+            // we could also query the media player directly for its position every now and then
+            let increment_ms: u128 = 250;
             let diff = increment_ms - player.time_ms_since_last_update();
             player.tick(diff);
-            thread::sleep(Duration::from_millis(
-                (diff) as u64,
-            ));
+            thread::sleep(Duration::from_millis((diff) as u64));
 
             if let Err(error) = main_tx.send(PlayerManagerMessage::PlayerTick((
                 id.clone(),
