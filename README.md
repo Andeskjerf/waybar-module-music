@@ -27,6 +27,72 @@ Unlike polling-based solutions, this module is **event-driven**, meaning we only
 yay -S waybar-module-music-git
 ```
 
+### NixOS
+This can currently only be used with flakes.
+This will build this crate from source, so be aware that that may take a bit, depending on the hardware.
+
+To add this to your nixos configuration, you have two options:
+
+#### The overlay
+To use the overlay, just add the following to your `flake.nix`:
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    waybar-module-music = {
+      url = "github:Andeskjerf/waybar-module-music";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # other flake inputs...
+  };
+  outputs = {nixpkgs, waybar-module-music, ...}@inputs : {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
+      modules = [
+        # your nixos module
+        ({...}: {
+          nixpkgs.overlays = [ waybar-module-music.overlays.default ];
+        })
+
+        # other nixos module imports ...
+      ];
+    };
+  };
+}
+```
+Now `waybar-module-music` is available in `pkgs` in your NixOS modules and you can use it however you wish.
+The easiest way is to add it to `environment.systemPackages`, then it will be available on the whole system.
+
+#### Manually accessing the package
+This isn't recommended, but if you don't wanna use the overlay, here's how to do that:
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    waybar-module-music = {
+      url = "github:Andeskjerf/waybar-module-music";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # other flake inputs...
+  };
+  outputs = {nixpkgs, ...}@inputs : {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
+      specialArgs = {
+        inherit inputs;
+      };
+      modules = [
+        # your nixos module. either file or function
+        ({inputs, pkgs, ...}: {
+            environment.systemPackages = [
+                inputs.waybar-module-music.packages.${pkgs.system}.waybar-module-music
+            ];
+        })
+        # other nixos module imports ...
+      ];
+    };
+  };
+}
+```
+
 ### From Source
 ```bash
 # Clone and build

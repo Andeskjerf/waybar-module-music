@@ -12,6 +12,7 @@ opt-level = 3
 strip = true
 codegen-units = 1
 panic = "abort"
+rpath=true
 
 [dependencies]
 bincode = "2.0.1"
