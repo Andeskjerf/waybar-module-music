@@ -17,7 +17,7 @@ pub struct MprisMetadata {
     pub album: Option<String>,
     disc_number: Option<u8>,
     track_number: Option<u8>,
-    length: Option<u64>,
+    pub length: Option<u64>,
     comment: Vec<String>,
     track_id: Option<String>,
     art_url: Option<String>,

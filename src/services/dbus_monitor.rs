@@ -11,7 +11,10 @@ use log::{debug, error, info, warn};
 use crate::{
     event_bus::{EventBusHandle, EventType},
     interfaces::dbus_client::DBusClient,
-    models::{args::Args, mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
+    models::{
+        args::Args, mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback,
+        mpris_rate::MprisRate, mpris_seeked::MprisSeeked,
+    },
 };
 
 use super::runnable::Runnable;
@@ -36,6 +39,20 @@ impl DBusMonitor {
 
     // TODO: the dbus client should handle parsing like this
     fn determine_event_type(msg: &Message) -> EventType {
+        // some events can be determined by simply checking their member
+        // while others may require more manual parsing
+        if let Some(member) = msg.member() {
+            match member.to_lowercase().as_str() {
+                "seeked" => {
+                    return EventType::Seeked;
+                }
+                "rate" => {
+                    return EventType::Rate;
+                }
+                _ => (),
+            }
+        }
+
         for elem in msg.iter_init() {
             if let Some(mut args) = elem.as_iter() {
                 if let Some(arg_type) = args.next() {
@@ -43,6 +60,7 @@ impl DBusMonitor {
                         Some(arg_type) => match arg_type {
                             "Metadata" => return EventType::PlayerSongChanged,
                             "PlaybackStatus" => return EventType::PlaybackChanged,
+                            "Rate" => return EventType::Rate,
                             _ => return EventType::Unknown(arg_type.to_string()),
                         },
                         None => return EventType::ParseError,
@@ -86,20 +104,25 @@ impl DBusMonitor {
         msg: &Message,
         event_bus: EventBusHandle,
     ) -> bool {
-        debug!("signal matched");
         if !DBusMonitor::should_handle_sender(args, dbus_client, msg) {
             debug!("ignoring sender, not in whitelist");
             return true;
         }
 
         let event_type = DBusMonitor::determine_event_type(msg);
-        debug!("message event type: {event_type}");
+        // TODO: the MPRIS objects could potentially use a common interface to make this cleaner
         let encoded = match event_type {
             EventType::PlayerSongChanged => {
                 bincode::encode_to_vec(MprisMetadata::from_dbus_message(msg), config::standard())
             }
             EventType::PlaybackChanged => {
                 bincode::encode_to_vec(MprisPlayback::from_dbus_message(msg), config::standard())
+            }
+            EventType::Seeked => {
+                bincode::encode_to_vec(MprisSeeked::from_dbus_message(msg), config::standard())
+            }
+            EventType::Rate => {
+                bincode::encode_to_vec(MprisRate::from_dbus_message(msg), config::standard())
             }
             EventType::ParseError => {
                 warn!("failed to parse message. skipping");
@@ -123,25 +146,38 @@ impl DBusMonitor {
     pub fn begin_monitoring(&self) -> Result<(), Box<dyn std::error::Error>> {
         let conn = Connection::new_session()?;
 
-        let rule = MatchRule::new()
-            .with_type(dbus::MessageType::Signal)
-            .with_path("/org/mpris/MediaPlayer2")
-            .with_interface("org.freedesktop.DBus.Properties")
-            .with_member("PropertiesChanged");
+        let rules: Vec<MatchRule> = vec![
+            MatchRule::new()
+                .with_type(dbus::MessageType::Signal)
+                .with_path("/org/mpris/MediaPlayer2")
+                .with_interface("org.freedesktop.DBus.Properties")
+                .with_member("PropertiesChanged"),
+            MatchRule::new()
+                .with_type(dbus::MessageType::Signal)
+                .with_path("/org/mpris/MediaPlayer2")
+                .with_interface("org.mpris.MediaPlayer2.Player")
+                .with_member("Seeked"),
+        ];
 
-        // TODO: could maybe do something smart with this token
-        let event_bus = self.event_bus.clone();
-        let dbus_client = self.dbus_client.clone();
-        let args = self.args.clone();
-        let token = match conn.add_match(rule, move |_: (), _, msg| {
-            DBusMonitor::handle_on_match(args.clone(), dbus_client.clone(), msg, event_bus.clone())
-        }) {
-            Ok(token) => token,
-            Err(err) => {
-                error!("DBusMonitor was unable to monitor MPRIS players: {err}");
-                return Err(err.into());
-            }
-        };
+        for rule in rules {
+            let event_bus = self.event_bus.clone();
+            let dbus_client = self.dbus_client.clone();
+            let args = self.args.clone();
+            match conn.add_match(rule, move |_: (), _, msg| {
+                DBusMonitor::handle_on_match(
+                    args.clone(),
+                    dbus_client.clone(),
+                    msg,
+                    event_bus.clone(),
+                )
+            }) {
+                Ok(token) => token,
+                Err(err) => {
+                    error!("DBusMonitor was unable to monitor MPRIS players: {err}");
+                    return Err(err.into());
+                }
+            };
+        }
 
         loop {
             match conn.process(Duration::from_millis(1000)) {

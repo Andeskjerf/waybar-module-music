@@ -10,6 +10,8 @@ pub struct PlayerState {
     pub album: String,
     pub title: String,
     pub playing: Option<bool>,
+    pub length: u64,
+    pub position: u128,
 }
 
 impl PlayerState {
@@ -20,6 +22,8 @@ impl PlayerState {
         album: String,
         title: String,
         playing: Option<bool>,
+        length: u64,
+        position: u128,
     ) -> Self {
         Self {
             player_id,
@@ -28,6 +32,8 @@ impl PlayerState {
             album,
             title,
             playing,
+            length,
+            position,
         }
     }
 
@@ -35,6 +41,7 @@ impl PlayerState {
         player_name: String,
         metadata: MprisMetadata,
         playback: Option<MprisPlayback>,
+        position: u128,
     ) -> Option<Self> {
         let player_id = metadata.player_id;
         let artist = metadata.artist.first()?.clone();
@@ -44,6 +51,7 @@ impl PlayerState {
             .unwrap_or_default()
             .playing
             .map(|elem| elem == "Playing");
+        let length = metadata.length.unwrap_or(0);
 
         Some(PlayerState::new(
             player_id,
@@ -52,6 +60,8 @@ impl PlayerState {
             album,
             title,
             playing,
+            length,
+            position,
         ))
     }
 }

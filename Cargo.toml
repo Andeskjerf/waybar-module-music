@@ -1,6 +1,6 @@
 [package]
 name = "waybar-module-music"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 description = "MPRIS music module for Waybar"
 license = "GPL3"
@@ -16,10 +16,10 @@ rpath=true
 
 [dependencies]
 bincode = "2.0.1"
-clap = { version = "4.5.41", features = ["derive"] }
-dbus = "0.9.7"
+clap = { version = "4.5.53", features = ["derive"] }
+dbus = "0.9.10"
 dirs = "6.0.0"
-log = "0.4.27"
-serde = { version = "1.0.227", features = ["serde_derive", "derive"] }
+log = "0.4.29"
+serde = { version = "1.0.228", features = ["serde_derive", "derive"] }
 simplelog = "0.12.2"
-toml = "0.9.7"
+toml = "0.9.10"

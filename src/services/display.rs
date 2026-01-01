@@ -5,6 +5,7 @@ use crate::{
     effects::{ellipsis::Ellipsis, marquee::Marquee, text_effect::TextEffect},
     event_bus::{EventBusHandle, EventType},
     models::{args::Args, config::Config, player_state::PlayerState},
+    utils::time,
 };
 
 use super::runnable::Runnable;
@@ -118,6 +119,8 @@ impl Display {
         fields.insert("album", TextEffect::new());
         fields.insert("player", TextEffect::new());
         fields.insert("player-icon", TextEffect::new());
+        fields.insert("position", TextEffect::new());
+        fields.insert("length", TextEffect::new());
 
         fields
     }
@@ -170,8 +173,10 @@ impl Display {
     fn set_text_effect_field(fields: &mut HashMap<&str, TextEffect>, value: &str, field: &str) {
         match fields.get_mut(field) {
             Some(field) => {
-                field.set_effect_text(value.to_string());
-                field.override_last_drawn(value.to_string());
+                if field.current_text() != value {
+                    field.set_effect_text(value.to_string());
+                    field.override_last_drawn(value.to_string());
+                }
             }
             None => error!("failed to get '{field}' field"),
         }
@@ -209,15 +214,22 @@ impl Display {
                         Display::set_text_effect_field(&mut fields, &state.player_name, "player");
                         Display::set_text_effect_field(
                             &mut fields,
+                            &time::microseconds_to_formatted_time(player_state.length as u128),
+                            "length",
+                        );
+                        Display::set_text_effect_field(
+                            &mut fields,
+                            &time::microseconds_to_formatted_time(player_state.position),
+                            "position",
+                        );
+                        Display::set_text_effect_field(
+                            &mut fields,
                             self.config
                                 .get_player_icon_by_partial_match(&player_state.player_name),
                             "player-icon",
                         );
                     }
                     player_state = Some(state);
-                    fields.iter_mut().for_each(|(_, v)| {
-                        v.should_redraw();
-                    });
                     self.draw(&player_state, &mut fields);
                     if let Err(err) = effect_tx.send(self.should_effects_be_redrawn(&fields)) {
                         error!("failed to notify effects thread: {err}");
@@ -301,6 +313,22 @@ impl Display {
                     self.config
                         .get_player_icon_by_partial_match(&player_state.player_name),
                 ),
+            ),
+            (
+                "length",
+                fields
+                    .get_mut("length")
+                    .unwrap()
+                    .draw(&time::microseconds_to_formatted_time(
+                        player_state.length as u128,
+                    )),
+            ),
+            (
+                "position",
+                fields
+                    .get_mut("position")
+                    .unwrap()
+                    .draw(&time::microseconds_to_formatted_time(player_state.position)),
             ),
         ]
         .into_iter()
