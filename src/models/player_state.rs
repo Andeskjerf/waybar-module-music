@@ -39,6 +39,11 @@ impl PlayerState {
         }
     }
 
+    // if there's no artist or track, then we assume we're missing all data
+    pub fn has_data(&self) -> bool {
+        !self.artist.is_empty() && !self.title.is_empty()
+    }
+
     pub fn from_mpris_data(
         player_name: String,
         metadata: MprisMetadata,

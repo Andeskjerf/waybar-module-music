@@ -353,6 +353,17 @@ impl Display {
             }
         };
 
+        if !player_state.has_data()
+            || player_state
+                .playing
+                .clone()
+                .is_some_and(|playback| playback == PlaybackState::Stopped)
+            || player_state.playing.is_none()
+        {
+            println!("{}", self.format_json_output("Nothing playing", "stopped"));
+            return;
+        }
+
         let output = self.format_json_output(
             self.populate_using_placeholders(player_state, fields)
                 .trim(),

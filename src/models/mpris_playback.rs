@@ -26,10 +26,7 @@ impl MprisPlayback {
     }
 
     pub fn new_with_playing(player_id: String, playing: Option<PlaybackState>) -> Self {
-        Self {
-            player_id,
-            playing,
-        }
+        Self { player_id, playing }
     }
 
     pub fn from_dbus_message(msg: &Message) -> Self {
@@ -46,7 +43,7 @@ impl MprisPlayback {
                         result.playing = PlaybackState::from_string(value);
                         return result;
                     } else {
-                        warn!("got unexpected key-value pair, types do not conform to expected format");
+                        warn!("got unexpected key-value pair, types do not conform to expected format: {:?}", kv);
                         return result;
                     }
                 }
