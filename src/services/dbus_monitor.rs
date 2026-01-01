@@ -53,8 +53,6 @@ impl DBusMonitor {
             }
         }
 
-        info!("{:?}", msg);
-
         for elem in msg.iter_init() {
             if let Some(mut args) = elem.as_iter() {
                 if let Some(arg_type) = args.next() {
@@ -132,7 +130,6 @@ impl DBusMonitor {
             }
             EventType::Unknown(found_arg) => {
                 warn!("got unknown event with name '{found_arg}'. skipping");
-                info!("{:?}", msg);
                 return true;
             }
             _ => return true, // ignore other messages
