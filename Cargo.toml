@@ -1,6 +1,6 @@
 [package]
 name = "waybar-module-music"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 description = "MPRIS music module for Waybar"
 license = "GPL3"
@@ -12,7 +12,7 @@ opt-level = 3
 strip = true
 codegen-units = 1
 panic = "abort"
-rpath=true
+rpath = true
 
 [dependencies]
 bincode = "2.0.1"
