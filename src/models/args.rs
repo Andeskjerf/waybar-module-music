@@ -35,6 +35,10 @@ pub struct Args {
     #[arg(short, long, default_value_t = 20)]
     pub title_width: u16,
 
+    /// Text to display when player is stopped
+    #[arg(short, long, default_value_t = String::new())]
+    pub stopped_label: String,
+
     /// Enable marquee scrolling on overflow
     #[arg(short, long, default_value_t = false)]
     pub marquee: bool,

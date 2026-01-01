@@ -58,7 +58,10 @@ impl Display {
     }
 
     fn init_worker(self: Arc<Self>) {
-        println!("{}", self.format_json_output("No activity", "stopped"));
+        println!(
+            "{}",
+            self.format_json_output(&self.args.stopped_label, "stopped")
+        );
 
         let (tx, rx) = mpsc::channel();
         let (effect_tx, effect_rx) = mpsc::channel();
@@ -348,7 +351,10 @@ impl Display {
         let player_state = match player_state {
             Some(state) => state,
             None => {
-                println!("{}", self.format_json_output("Nothing playing", "stopped"));
+                println!(
+                    "{}",
+                    self.format_json_output(&self.args.stopped_label, "stopped")
+                );
                 return;
             }
         };
@@ -360,7 +366,10 @@ impl Display {
                 .is_some_and(|playback| playback == PlaybackState::Stopped)
             || player_state.playing.is_none()
         {
-            println!("{}", self.format_json_output("Nothing playing", "stopped"));
+            println!(
+                "{}",
+                self.format_json_output(&self.args.stopped_label, "stopped")
+            );
             return;
         }
 
