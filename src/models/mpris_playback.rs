@@ -2,10 +2,12 @@ use bincode::{Decode, Encode};
 use dbus::Message;
 use log::{error, warn};
 
+use crate::models::playback_state::PlaybackState;
+
 #[derive(Debug, Default, Clone, Encode, Decode, PartialEq)]
 pub struct MprisPlayback {
     pub player_id: String,
-    pub playing: Option<String>,
+    pub playing: Option<PlaybackState>,
 }
 
 impl MprisPlayback {
@@ -19,15 +21,12 @@ impl MprisPlayback {
     pub fn is_playing(&self) -> bool {
         self.playing
             .clone()
-            .map(|elem| elem == "Playing")
+            .map(|elem| elem == PlaybackState::Playing)
             .unwrap_or(false)
     }
 
-    pub fn new_with_playing(player_id: String, playing: String) -> Self {
-        Self {
-            player_id,
-            playing: Some(playing),
-        }
+    pub fn new_with_playing(player_id: String, playing: Option<PlaybackState>) -> Self {
+        Self { player_id, playing }
     }
 
     pub fn from_dbus_message(msg: &Message) -> Self {
@@ -41,10 +40,10 @@ impl MprisPlayback {
                             warn!("tried to create MprisPlayback but message does not conform to expected format");
                             return result;
                         }
-                        result.playing = Some(value.to_string());
+                        result.playing = PlaybackState::from_string(value);
                         return result;
                     } else {
-                        warn!("got unexpected key-value pair, types do not conform to expected format");
+                        warn!("got unexpected key-value pair, types do not conform to expected format: {:?}", kv);
                         return result;
                     }
                 }

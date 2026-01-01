@@ -1,5 +1,7 @@
 use bincode::{Decode, Encode};
 
+use crate::models::playback_state::PlaybackState;
+
 use super::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback};
 
 #[derive(Debug, Clone, Encode, Decode, PartialEq)]
@@ -9,7 +11,7 @@ pub struct PlayerState {
     pub artist: String,
     pub album: String,
     pub title: String,
-    pub playing: Option<bool>,
+    pub playing: Option<PlaybackState>,
     pub length: u64,
     pub position: u128,
 }
@@ -21,7 +23,7 @@ impl PlayerState {
         artist: String,
         album: String,
         title: String,
-        playing: Option<bool>,
+        playing: Option<PlaybackState>,
         length: u64,
         position: u128,
     ) -> Self {
@@ -37,6 +39,11 @@ impl PlayerState {
         }
     }
 
+    // if there's no artist or track, then we assume we're missing all data
+    pub fn has_data(&self) -> bool {
+        !self.artist.is_empty() && !self.title.is_empty()
+    }
+
     pub fn from_mpris_data(
         player_name: String,
         metadata: MprisMetadata,
@@ -47,10 +54,7 @@ impl PlayerState {
         let artist = metadata.artist.first()?.clone();
         let album = metadata.album?;
         let title = metadata.title?;
-        let playing = playback
-            .unwrap_or_default()
-            .playing
-            .map(|elem| elem == "Playing");
+        let playing = playback.unwrap_or_default().playing;
         let length = metadata.length.unwrap_or(0);
 
         Some(PlayerState::new(

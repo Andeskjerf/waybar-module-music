@@ -4,7 +4,9 @@ use log::{debug, error, info, warn};
 use crate::{
     effects::{ellipsis::Ellipsis, marquee::Marquee, text_effect::TextEffect},
     event_bus::{EventBusHandle, EventType},
-    models::{args::Args, config::Config, player_state::PlayerState},
+    models::{
+        args::Args, config::Config, playback_state::PlaybackState, player_state::PlayerState,
+    },
     utils::time,
 };
 
@@ -56,7 +58,10 @@ impl Display {
     }
 
     fn init_worker(self: Arc<Self>) {
-        println!("{}", self.format_json_output("No activity", "stopped"));
+        println!(
+            "{}",
+            self.format_json_output(&self.args.stopped_label, "stopped")
+        );
 
         let (tx, rx) = mpsc::channel();
         let (effect_tx, effect_rx) = mpsc::channel();
@@ -247,16 +252,12 @@ impl Display {
         }
     }
 
-    fn get_class(&self, state: &PlayerState) -> &str {
-        if let Some(playing) = state.playing {
-            if playing {
-                return "playing";
-            } else {
-                return "paused";
-            }
+    fn get_class(&self, state: &PlayerState) -> String {
+        if let Some(playing) = state.playing.clone() {
+            playing.to_string()
+        } else {
+            String::from("stopped")
         }
-
-        "stopped"
     }
 
     /// Create the final output JSON, in the format that Waybar expects
@@ -277,9 +278,14 @@ impl Display {
         let replacements: HashMap<&str, String> = [
             (
                 "icon",
-                match player_state.playing.unwrap_or(false) {
-                    true => self.args.pause_icon.clone(),
-                    false => self.args.play_icon.clone(),
+                match player_state
+                    .clone()
+                    .playing
+                    .unwrap_or(PlaybackState::Stopped)
+                {
+                    PlaybackState::Playing => self.args.play_icon.clone(),
+                    PlaybackState::Paused => self.args.pause_icon.clone(),
+                    PlaybackState::Stopped => self.args.pause_icon.clone(),
                 },
             ),
             (
@@ -345,18 +351,34 @@ impl Display {
         let player_state = match player_state {
             Some(state) => state,
             None => {
-                println!("{}", self.format_json_output("Nothing playing", "stopped"));
+                println!(
+                    "{}",
+                    self.format_json_output(&self.args.stopped_label, "stopped")
+                );
                 return;
             }
         };
 
+        if !player_state.has_data()
+            || player_state
+                .playing
+                .clone()
+                .is_some_and(|playback| playback == PlaybackState::Stopped)
+            || player_state.playing.is_none()
+        {
+            println!(
+                "{}",
+                self.format_json_output(&self.args.stopped_label, "stopped")
+            );
+            return;
+        }
+
         let output = self.format_json_output(
             self.populate_using_placeholders(player_state, fields)
                 .trim(),
-            self.get_class(player_state),
+            &self.get_class(player_state),
         );
 
-        // debug!("{output}");
         println!("{}", output)
     }
 }

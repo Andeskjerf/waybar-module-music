@@ -143,6 +143,7 @@ waybar-module-music [OPTIONS]
 | `--effect-speed <ms>` | Animation update interval | `200` |
 | `-a, --artist-width <chars>` | Max artist length before overflow | Unlimited |
 | `-t, --title-width <chars>` | Max title length before overflow | `20` |
+| `-s, --stopped-label <text>` | Text to show when player is stopped | None |
 | `-m, --marquee` | Enable marquee scrolling on overflow | |
 | `--ellipsis` | Enable ellipsis (...) on overflow | |
 | `--debug` | Allow debug log events in the log file | |
