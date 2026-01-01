@@ -268,9 +268,14 @@ impl PlayerManager {
             }
             Entry::Vacant(e) => {
                 let identity = self.dbus_client.query_mediaplayer_identity(&player_id);
+                let playback = self.dbus_client.query_playback_status(&player_id);
                 match identity {
                     Ok(identity) => {
-                        e.insert(PlayerClient::new(identity, mpris_metadata));
+                        let mut player_client = PlayerClient::new(identity, mpris_metadata);
+                        if let Ok(playback) = playback {
+                            player_client.update_playback_state(playback);
+                        }
+                        e.insert(player_client);
                     }
                     Err(err) => {
                         error!("failed to query media player identity, skipping message: {err}");
