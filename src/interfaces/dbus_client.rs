@@ -7,7 +7,9 @@ use dbus::{
     message::MatchRule,
 };
 
-use crate::models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback};
+use crate::models::{
+    mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback, playback_state::PlaybackState,
+};
 
 pub struct DBusClient {
     conn: Connection,
@@ -46,7 +48,7 @@ impl DBusClient {
         let result: String = proxy.get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")?;
         Ok(MprisPlayback::new_with_playing(
             player_id.to_string(),
-            result,
+            PlaybackState::from_string(&result),
         ))
     }
 
