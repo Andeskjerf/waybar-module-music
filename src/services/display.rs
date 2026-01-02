@@ -357,8 +357,6 @@ impl Display {
             }
         };
 
-        info!("{:?}", player_state);
-
         if player_state
             .playing
             .clone()
