@@ -212,28 +212,26 @@ impl Display {
 
             match msg {
                 DisplayMessages::PlayerStateChanged(state) => {
-                    if let Some(player_state) = player_state {
-                        Display::set_text_effect_field(&mut fields, &state.title, "title");
-                        Display::set_text_effect_field(&mut fields, &state.artist, "artist");
-                        Display::set_text_effect_field(&mut fields, &state.album, "album");
-                        Display::set_text_effect_field(&mut fields, &state.player_name, "player");
-                        Display::set_text_effect_field(
-                            &mut fields,
-                            &time::microseconds_to_formatted_time(player_state.length as u128),
-                            "length",
-                        );
-                        Display::set_text_effect_field(
-                            &mut fields,
-                            &time::microseconds_to_formatted_time(player_state.position),
-                            "position",
-                        );
-                        Display::set_text_effect_field(
-                            &mut fields,
-                            self.config
-                                .get_player_icon_by_partial_match(&player_state.player_name),
-                            "player-icon",
-                        );
-                    }
+                    Display::set_text_effect_field(&mut fields, &state.title, "title");
+                    Display::set_text_effect_field(&mut fields, &state.artist, "artist");
+                    Display::set_text_effect_field(&mut fields, &state.album, "album");
+                    Display::set_text_effect_field(&mut fields, &state.player_name, "player");
+                    Display::set_text_effect_field(
+                        &mut fields,
+                        &time::microseconds_to_formatted_time(state.length as u128),
+                        "length",
+                    );
+                    Display::set_text_effect_field(
+                        &mut fields,
+                        &time::microseconds_to_formatted_time(state.position),
+                        "position",
+                    );
+                    Display::set_text_effect_field(
+                        &mut fields,
+                        self.config
+                            .get_player_icon_by_partial_match(&state.player_name),
+                        "player-icon",
+                    );
                     player_state = Some(state);
                     self.draw(&player_state, &mut fields);
                     if let Err(err) = effect_tx.send(self.should_effects_be_redrawn(&fields)) {
@@ -359,11 +357,12 @@ impl Display {
             }
         };
 
-        if !player_state.has_data()
-            || player_state
-                .playing
-                .clone()
-                .is_some_and(|playback| playback == PlaybackState::Stopped)
+        info!("{:?}", player_state);
+
+        if player_state
+            .playing
+            .clone()
+            .is_some_and(|playback| playback == PlaybackState::Stopped)
             || player_state.playing.is_none()
         {
             println!(
