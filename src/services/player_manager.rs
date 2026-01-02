@@ -146,31 +146,26 @@ impl PlayerManager {
                 }
             }
 
-            let (id, player) = match players
-                .iter_mut()
-                .filter(|(_, player)| player.is_playing())
-                .max_by_key(|(_, player)| player.time_ms_since_last_update())
-            {
-                Some(player) => player,
-                None => continue,
-            };
-
             // TODO: to better sync the module & player,
             // we could figure out the difference between our clock and the player
             // e.g, on first run, delay the amount required to get an even, for example, 250ms difference
             // between the player and the module
             // we could also query the media player directly for its position every now and then
             let increment_ms: u128 = 250;
-            let diff = increment_ms - player.time_ms_since_last_update();
-            player.tick(diff);
-            thread::sleep(Duration::from_millis((diff) as u64));
+            players
+                .iter_mut()
+                .filter(|(_, p)| p.is_playing())
+                .for_each(|(id, player)| {
+                    player.tick(increment_ms);
 
-            if let Err(error) = main_tx.send(PlayerManagerMessage::PlayerTick((
-                id.clone(),
-                player.position(),
-            ))) {
-                error!("PlayerManager timer thread: failed to publish tick event! {error}");
-            }
+                    if let Err(error) = main_tx.send(PlayerManagerMessage::PlayerTick((
+                        id.clone(),
+                        player.position(),
+                    ))) {
+                        error!("PlayerManager timer thread: failed to publish tick event! {error}");
+                    }
+                });
+            thread::sleep(Duration::from_millis((increment_ms) as u64));
         }
     }
 

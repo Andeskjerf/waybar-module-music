@@ -54,6 +54,6 @@ impl PlayerTimer {
     }
 
     pub fn time_ms_since_last_update(&self) -> u128 {
-        self.last_update.duration_since(Instant::now()).as_millis()
+        Instant::now().duration_since(self.last_update).as_millis()
     }
 }
