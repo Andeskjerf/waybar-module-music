@@ -10,7 +10,6 @@ use crate::{
         player_timer::PlayerTimer,
     },
     services::runnable::Runnable,
-    utils::time::get_current_timestamp,
 };
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -19,7 +18,7 @@ use std::{
         Arc,
     },
     thread::{self, JoinHandle},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 #[derive(Debug, Clone)]
@@ -377,7 +376,7 @@ impl PlayerManager {
 
     pub fn publish_player_state(&self, player: &mut PlayerClient, set_last_updated: bool) {
         if set_last_updated {
-            player.last_updated = get_current_timestamp();
+            player.last_updated = Instant::now();
         }
 
         match PlayerState::from_mpris_data(

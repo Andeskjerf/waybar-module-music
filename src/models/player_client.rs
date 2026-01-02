@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::{
     models::{mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback},
     utils::time::get_current_timestamp,
@@ -10,7 +12,7 @@ pub struct PlayerClient {
     playback_state: Option<MprisPlayback>,
     current_position: u128,
     /// Timestamp for metadata or playback updates
-    pub last_updated: u64,
+    pub last_updated: Instant,
     /// Timestamp for last timer event, like song progressing in time
     last_tick: Option<u64>,
 }
@@ -21,7 +23,7 @@ impl PlayerClient {
             player_name,
             metadata,
             current_position: 0,
-            last_updated: 0,
+            last_updated: Instant::now(),
             last_tick: None,
             playback_state: None,
         }
