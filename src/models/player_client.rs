@@ -3,7 +3,7 @@ use crate::{
     utils::time::get_current_timestamp,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PlayerClient {
     player_name: String,
     metadata: MprisMetadata,
@@ -29,6 +29,10 @@ impl PlayerClient {
 
     pub fn name(&self) -> &String {
         &self.player_name
+    }
+
+    pub fn get_id(&self) -> String {
+        self.metadata().player_id
     }
 
     pub fn metadata(&self) -> MprisMetadata {

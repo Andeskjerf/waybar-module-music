@@ -30,7 +30,7 @@ impl MprisRate {
                         result.rate = value;
                         return result;
                     } else {
-                        error!("got unexpected key-value pair, types do not conform to expected format");
+                        error!("got unexpected key-value pair, types do not conform to expected format: {:?}", kv);
                         return result;
                     }
                 }

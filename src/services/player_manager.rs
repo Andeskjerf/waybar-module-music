@@ -242,15 +242,20 @@ impl PlayerManager {
                         warn!("PlayerManager: failed to re-send message to timer thread! {err}");
                     }
                 }
-                PlayerManagerMessage::PlayerTick((id, position)) => match players.get_mut(&id) {
-                    Some(player) => {
-                        player.update_position(position);
-                        self.publish_player_state(player);
-                    }
-                    None => warn!(
+                PlayerManagerMessage::PlayerTick((id, position)) => {
+                    let last_updated_player = self.get_last_updated_player(&players);
+                    match players.get_mut(&id) {
+                        Some(player) => {
+                            player.update_position(position);
+                            if last_updated_player.is_some_and(|p| p.name() == player.name()) {
+                                self.publish_player_state(player, false);
+                            }
+                        }
+                        None => warn!(
                         "PlayerTick event: tried to get player '{id}', but no such player exists"
                     ),
-                },
+                    }
+                }
             };
         }
     }
@@ -261,10 +266,15 @@ impl PlayerManager {
         mpris_metadata: MprisMetadata,
     ) {
         let player_id = mpris_metadata.player_id.clone();
+        let active_players = self.get_active_player_ids(players);
         match players.entry(player_id.clone()) {
             Entry::Occupied(mut e) => {
                 e.get_mut().update_metadata(mpris_metadata);
-                self.publish_player_state(e.get_mut());
+
+                if !e.get().playing() && active_players.iter().any(|id| id != &e.get().get_id()) {
+                } else {
+                    self.publish_player_state(e.get_mut(), true);
+                }
             }
             Entry::Vacant(e) => {
                 let identity = self.dbus_client.query_mediaplayer_identity(&player_id);
@@ -293,15 +303,15 @@ impl PlayerManager {
         let id = &mpris_playback.player_id;
         self.query_player_if_not_exists(players, id);
 
+        let active_players = self.get_active_player_ids(players);
         if let Some(player) = players.get_mut(id) {
             player.update_playback_state(mpris_playback);
-            self.publish_player_state(player);
 
             // if the latest player is not playing, find the most recent one that is still playing and display that instead
-            if !player.playing() {
+            if !player.playing() && active_players.iter().any(|id| id != &player.get_id()) {
                 self.set_most_recent_player_as_active(players);
             } else {
-                self.publish_player_state(player);
+                self.publish_player_state(player, true);
             }
         } else {
             error!("failed to get player during PlaybackState update");
@@ -318,7 +328,7 @@ impl PlayerManager {
 
         if let Some(player) = players.get_mut(id) {
             player.update_position(mpris_seeked.position);
-            self.publish_player_state(player);
+            // self.publish_player_state(player, true);
         } else {
             error!("failed to get player during Seeked update");
         }
@@ -350,12 +360,30 @@ impl PlayerManager {
             .filter(|(_, p)| p.playing())
             .max_by_key(|(_, p)| p.last_updated)
         {
-            self.publish_player_state(player);
+            self.publish_player_state(player, true);
         };
     }
 
-    pub fn publish_player_state(&self, player: &mut PlayerClient) {
-        player.last_updated = get_current_timestamp();
+    fn get_last_updated_player(
+        &self,
+        players: &HashMap<String, PlayerClient>,
+    ) -> Option<PlayerClient> {
+        players.values().cloned().max_by_key(|p| p.last_updated)
+    }
+
+    fn get_active_player_ids(&self, players: &mut HashMap<String, PlayerClient>) -> Vec<String> {
+        players
+            .iter()
+            .filter(|(_, p)| p.playing())
+            .map(|(id, _)| id)
+            .cloned()
+            .collect::<Vec<String>>()
+    }
+
+    pub fn publish_player_state(&self, player: &mut PlayerClient, set_last_updated: bool) {
+        if set_last_updated {
+            player.last_updated = get_current_timestamp();
+        }
 
         match PlayerState::from_mpris_data(
             player.name().to_owned(),
