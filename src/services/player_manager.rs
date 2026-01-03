@@ -389,6 +389,11 @@ impl PlayerManager {
             player.last_updated = Instant::now();
         }
 
+        // bit of a hack
+        // if the user uses playerctl's daemon, it gets reported as its own player
+        // this overshadows the actual player
+        // since the identity of this daemon is the same as the active player
+        // we must also update the name of our player, since the identity may have changed
         match self
             .dbus_client
             .query_mediaplayer_identity(&player.get_id())
