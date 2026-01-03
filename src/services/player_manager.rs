@@ -264,6 +264,10 @@ impl PlayerManager {
         match players.entry(player_id.clone()) {
             Entry::Occupied(mut e) => {
                 e.get_mut().update_metadata(mpris_metadata);
+                match self.dbus_client.query_playback_status(&player_id) {
+                    Ok(playback) => e.get_mut().update_playback_state(playback),
+                    Err(err) => warn!("PlayerManager::handle_metadata_event: failed to query playback state, {err}"),
+                }
 
                 if !e.get().playing() && active_players.iter().any(|id| id != &e.get().get_id()) {
                 } else {
@@ -299,6 +303,12 @@ impl PlayerManager {
 
         let active_players = self.get_active_player_ids(players);
         if let Some(player) = players.get_mut(id) {
+            match self.dbus_client.query_metadata(id) {
+                Ok(metadata) => player.update_metadata(metadata),
+                Err(err) => {
+                    warn!("PlayerManager::handle_playback_event: failed to query metadata, {err}")
+                }
+            }
             player.update_playback_state(mpris_playback);
 
             // if the latest player is not playing, find the most recent one that is still playing and display that instead
@@ -322,7 +332,7 @@ impl PlayerManager {
 
         if let Some(player) = players.get_mut(id) {
             player.update_position(mpris_seeked.position);
-            // self.publish_player_state(player, true);
+            self.publish_player_state(player, true);
         } else {
             error!("failed to get player during Seeked update");
         }
