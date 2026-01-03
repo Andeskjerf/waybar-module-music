@@ -29,6 +29,10 @@ impl PlayerClient {
         }
     }
 
+    pub fn set_name(&mut self, name: String) {
+        self.player_name = name;
+    }
+
     pub fn name(&self) -> &String {
         &self.player_name
     }

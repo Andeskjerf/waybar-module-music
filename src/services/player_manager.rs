@@ -389,6 +389,16 @@ impl PlayerManager {
             player.last_updated = Instant::now();
         }
 
+        match self
+            .dbus_client
+            .query_mediaplayer_identity(&player.get_id())
+        {
+            Ok(name) => player.set_name(name),
+            Err(err) => {
+                warn!("PlayerManager::publish_player_state: failed to set player name, {err}")
+            }
+        }
+
         match PlayerState::from_mpris_data(
             player.name().to_owned(),
             player.metadata(),
