@@ -309,7 +309,6 @@ impl PlayerManager {
         self.query_player_if_not_exists(players, id);
 
         let active_players = self.get_active_player_ids(players);
-        let mut did_pause = false;
 
         if let Some(player) = players.get_mut(id) {
             match self.dbus_client.query_metadata(id) {
@@ -319,16 +318,12 @@ impl PlayerManager {
                 }
             }
             player.update_playback_state(mpris_playback);
-            did_pause = !player.playing() && active_players.iter().any(|id| id != &player.get_id());
-        }
-
-        if did_pause {
-            self.set_most_recent_player_as_active(players);
         }
 
         if let Some(player) = players.get(id) {
             // if the latest player is not playing, find the most recent one that is still playing and display that instead
             if !player.playing() && active_players.iter().any(|id| id != &player.get_id()) {
+                self.set_most_recent_player_as_active(players);
             } else {
                 self.publish_player_state(player, players);
             }
