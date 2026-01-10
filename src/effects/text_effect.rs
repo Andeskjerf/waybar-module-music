@@ -24,6 +24,7 @@ impl TextEffect {
 
     pub fn set_effect_text(&mut self, text: String) {
         self.text = text.clone();
+        *self.update_tick.lock().unwrap() = true;
         self.effects.lock().unwrap().iter_mut().for_each(|effect| {
             effect.set_text(text.clone());
             effect.apply(text.clone());

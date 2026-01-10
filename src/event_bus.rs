@@ -9,6 +9,7 @@ pub enum EventType {
     PlaybackChanged,
     Seeked,
     Rate,
+    Identity,
     ParseError,
     Unknown(String),
 }
@@ -24,6 +25,7 @@ impl Display for EventType {
                 EventType::PlaybackChanged => "PlaybackChanged",
                 EventType::Seeked => "Seeked",
                 EventType::Rate => "Rate",
+                EventType::Identity => "Identity",
                 EventType::ParseError => "ParseError",
                 EventType::Unknown(_) => "Unknown",
             }

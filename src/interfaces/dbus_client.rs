@@ -4,7 +4,6 @@ use std::time::Duration;
 use dbus::{
     arg::PropMap,
     blocking::{stdintf::org_freedesktop_dbus::Properties, Connection, Proxy},
-    message::MatchRule,
 };
 
 use crate::models::{

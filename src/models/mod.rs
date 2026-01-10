@@ -1,5 +1,6 @@
 pub mod args;
 pub mod config;
+pub mod mpris_identity;
 pub mod mpris_metadata;
 pub mod mpris_playback;
 pub mod mpris_rate;
