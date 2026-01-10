@@ -244,7 +244,12 @@ impl PlayerManager {
                 }
                 PlayerManagerMessage::PlayerTick((id, position)) => {
                     let last_updated_player = self.get_last_updated_player(&players);
-                    match players.get_mut(&id) {
+                    match players
+                        .iter_mut()
+                        .filter(|(_, p)| p.playing())
+                        .collect::<HashMap<&String, &mut PlayerClient>>()
+                        .get_mut(&id)
+                    {
                         Some(player) => {
                             player.update_position(position);
                             if last_updated_player.is_some_and(|p| p.name() == player.name()) {
