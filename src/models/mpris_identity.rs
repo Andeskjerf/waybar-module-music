@@ -23,7 +23,7 @@ impl MprisIdentity {
             if let Some(args) = elem.as_iter() {
                 if let Some(kv) = args.collect::<Vec<_>>().chunks(2).next() {
                     if let (Some(key), Some(value)) = (kv[0].as_str(), kv[1].as_str()) {
-                        if key != "Rate" {
+                        if key != "Identity" {
                             error!("tried to create MprisRate but message does not conform to expected format");
                             return result;
                         }
