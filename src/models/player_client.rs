@@ -31,6 +31,7 @@ impl PlayerClient {
 
     pub fn set_name(&mut self, name: String) {
         self.player_name = name;
+        self.last_updated = Instant::now();
     }
 
     pub fn name(&self) -> &String {
@@ -62,10 +63,12 @@ impl PlayerClient {
 
     pub fn update_metadata(&mut self, metadata: MprisMetadata) {
         self.metadata = metadata;
+        self.last_updated = Instant::now();
     }
 
     pub fn update_playback_state(&mut self, playback_state: MprisPlayback) {
         self.playback_state = Some(playback_state);
+        self.last_updated = Instant::now();
     }
 
     pub fn update_position(&mut self, position: u128) {
