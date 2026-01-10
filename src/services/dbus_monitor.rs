@@ -12,8 +12,8 @@ use crate::{
     event_bus::{EventBusHandle, EventType},
     interfaces::dbus_client::DBusClient,
     models::{
-        args::Args, mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback,
-        mpris_rate::MprisRate, mpris_seeked::MprisSeeked,
+        args::Args, mpris_identity::MprisIdentity, mpris_metadata::MprisMetadata,
+        mpris_playback::MprisPlayback, mpris_rate::MprisRate, mpris_seeked::MprisSeeked,
     },
 };
 
@@ -55,12 +55,12 @@ impl DBusMonitor {
     fn get_signal_property_keys(msg: &Message) -> Vec<String> {
         let mut result = vec![];
         for elem in msg.iter_init() {
-            if let Some(mut args) = elem.as_iter() {
-                if let Some(arg_type) = args.next() {
-                    if let Some(arg_str) = arg_type.as_str() {
+            if let Some(args) = elem.as_iter() {
+                for arg in args {
+                    if let Some(arg_str) = arg.as_str() {
                         result.push(String::from(arg_str));
                     }
-                };
+                }
             };
         }
         result
@@ -102,7 +102,7 @@ impl DBusMonitor {
             return true;
         }
 
-        info!("dbus_monitor msg: {:?}", msg);
+        debug!("dbus_monitor msg: {:?}", msg);
         let mut property_keys = DBusMonitor::get_signal_property_keys(msg);
         if let Some(member) = msg.member() {
             property_keys.push(member.to_string());
@@ -125,6 +125,10 @@ impl DBusMonitor {
                 EventType::Rate => {
                     bincode::encode_to_vec(MprisRate::from_dbus_message(msg), config::standard())
                 }
+                EventType::Identity => bincode::encode_to_vec(
+                    MprisIdentity::from_dbus_message(msg),
+                    config::standard(),
+                ),
                 EventType::ParseError => {
                     warn!("failed to parse message. skipping");
                     continue;

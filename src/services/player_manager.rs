@@ -5,9 +5,9 @@ use crate::{
     event_bus::{EventBusHandle, EventType},
     interfaces::dbus_client::DBusClient,
     models::{
-        mpris_metadata::MprisMetadata, mpris_playback::MprisPlayback, mpris_rate::MprisRate,
-        mpris_seeked::MprisSeeked, player_client::PlayerClient, player_state::PlayerState,
-        player_timer::PlayerTimer,
+        mpris_identity::MprisIdentity, mpris_metadata::MprisMetadata,
+        mpris_playback::MprisPlayback, mpris_rate::MprisRate, mpris_seeked::MprisSeeked,
+        player_client::PlayerClient, player_state::PlayerState, player_timer::PlayerTimer,
     },
     services::runnable::Runnable,
 };
@@ -27,6 +27,7 @@ enum PlayerManagerMessage {
     PlaybackState(MprisPlayback),
     Seeked(MprisSeeked),
     Rate(MprisRate),
+    Identity(MprisIdentity),
     PlayerTick((String, u128)),
 }
 
@@ -236,6 +237,11 @@ impl PlayerManager {
                         warn!("PlayerManager: failed to re-send message to timer thread! {err}");
                     }
                 }
+                PlayerManagerMessage::Identity(mpris_identity) => {
+                    if let Some(p) = players.get_mut(&mpris_identity.player_id) {
+                        p.set_name(mpris_identity.identity);
+                    }
+                }
                 PlayerManagerMessage::PlayerTick((id, position)) => {
                     let last_updated_player = self.get_last_updated_player(&players);
                     match players.get_mut(&id) {
@@ -387,21 +393,6 @@ impl PlayerManager {
     pub fn publish_player_state(&self, player: &mut PlayerClient, set_last_updated: bool) {
         if set_last_updated {
             player.last_updated = Instant::now();
-        }
-
-        // bit of a hack
-        // if the user uses playerctl's daemon, it gets reported as its own player
-        // this overshadows the actual player
-        // since the identity of this daemon is the same as the active player
-        // we must also update the name of our player, since the identity may have changed
-        match self
-            .dbus_client
-            .query_mediaplayer_identity(&player.get_id())
-        {
-            Ok(name) => player.set_name(name),
-            Err(err) => {
-                warn!("PlayerManager::publish_player_state: failed to set player name, {err}")
-            }
         }
 
         match PlayerState::from_mpris_data(
