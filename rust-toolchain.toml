@@ -1,10 +1,5 @@
-#NOTE: whenever you update this file, please make sure to rerun `nix develop`
-# and look at the error. It will immediately tell you that the hash no longer
-# matches.
-# if that is the case, just copy the sha256 from the error and put it into nix/rust-toolchain.nix.
-# When rerunning now, there should no longer be an error.
 [toolchain]
-channel = "stable"
+channel = "1.93.0"
 components = [
     "rustc",
     "cargo",
