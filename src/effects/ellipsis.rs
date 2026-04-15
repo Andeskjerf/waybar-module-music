@@ -28,6 +28,8 @@ impl Effect for Ellipsis {
         self.active = false;
         format!(
             "{}...",
+            // we gotta join here, since we have a Vec<&str>, not a string.
+            // and join just looks nicer than .into_iter().collect<String>() but is functionally identical
             text_graphemes.split_at(self.max_width as usize).0.join("")
         )
     }

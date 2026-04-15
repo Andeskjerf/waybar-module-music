@@ -35,8 +35,11 @@ impl Effect for Marquee {
             return text;
         }
 
+        // this is a bit ugly but since we're not working with a string anymore it's necessary.
+        // NOTE: padding_graphemes is emptied by the append, so I'm dropping it manually.
         let mut padding_graphemes = PADDING.graphemes(true).collect::<Vec<_>>();
         text_graphemes.append(&mut padding_graphemes);
+        drop(padding_graphemes);
 
         let mut result = Vec::new();
         for i in self.current_pos..self.current_pos + text_graphemes.len() as u16 {
