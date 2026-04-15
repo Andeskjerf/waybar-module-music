@@ -69,9 +69,8 @@ impl Effect for Marquee {
 
         if result.len() > self.max_width as usize {
             result
-                .iter()
+                .into_iter()
                 .take(self.max_width as usize)
-                .map(Deref::deref)
                 .collect::<String>()
         } else {
             result.join("")
