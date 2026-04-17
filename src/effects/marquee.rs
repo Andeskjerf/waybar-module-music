@@ -1,4 +1,6 @@
-use std::time::Instant;
+use unicode_segmentation::UnicodeSegmentation;
+
+use std::{ops::Deref, time::Instant};
 
 use super::effect::Effect;
 
@@ -27,17 +29,25 @@ impl Marquee {
 }
 
 impl Effect for Marquee {
-    fn apply(&mut self, mut text: String) -> String {
-        if text.len() <= self.max_width as usize || self.max_width == 0 {
+    fn apply(&mut self, text: String) -> String {
+        let mut text_graphemes = text.graphemes(true).collect::<Vec<&str>>();
+        if text_graphemes.len() <= self.max_width as usize || self.max_width == 0 {
             return text;
         }
 
-        text.push_str(PADDING);
+        // this is a bit ugly but since we're not working with a string anymore it's necessary.
+        // NOTE: padding_graphemes is emptied by the append, so I'm dropping it manually.
+        let mut padding_graphemes = PADDING.graphemes(true).collect::<Vec<_>>();
+        text_graphemes.append(&mut padding_graphemes);
+        drop(padding_graphemes);
 
-        let mut result = String::new();
-        for i in self.current_pos..self.current_pos + text.len() as u16 {
-            let i = i % text.len() as u16;
-            let c = text.chars().nth((i) as usize).unwrap_or(' ');
+        let mut result = Vec::new();
+        for i in self.current_pos..self.current_pos + text_graphemes.len() as u16 {
+            let i = i % text_graphemes.len() as u16;
+            let c = text_graphemes
+                .get((i) as usize)
+                .map(Deref::deref)
+                .unwrap_or(" ");
             result.push(c);
         }
 
@@ -53,7 +63,7 @@ impl Effect for Marquee {
 
         if self.instant.is_none() {
             self.current_pos += 1;
-            self.current_pos %= text.len() as u16;
+            self.current_pos %= text_graphemes.len() as u16;
         }
 
         if self.instant.is_none() && self.pause_on_loop_ms != 0 && self.current_pos == 0 {
@@ -62,11 +72,11 @@ impl Effect for Marquee {
 
         if result.len() > self.max_width as usize {
             result
-                .chars()
+                .into_iter()
                 .take(self.max_width as usize)
                 .collect::<String>()
         } else {
-            result
+            result.join("")
         }
     }
 

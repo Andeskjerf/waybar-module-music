@@ -1,3 +1,5 @@
+use unicode_segmentation::UnicodeSegmentation;
+
 use super::effect::Effect;
 
 pub struct Ellipsis {
@@ -18,12 +20,18 @@ impl Ellipsis {
 
 impl Effect for Ellipsis {
     fn apply(&mut self, text: String) -> String {
-        if text.len() <= self.max_width as usize || self.max_width == 0 {
+        let text_graphemes = text.graphemes(true).collect::<Vec<&str>>();
+        if text_graphemes.len() <= self.max_width as usize || self.max_width == 0 {
             return text;
         }
 
         self.active = false;
-        format!("{}...", text.split_at(self.max_width as usize).0)
+        format!(
+            "{}...",
+            // we gotta join here, since we have a Vec<&str>, not a string.
+            // and join just looks nicer than .into_iter().collect<String>() but is functionally identical
+            text_graphemes.split_at(self.max_width as usize).0.join("")
+        )
     }
 
     fn is_active(&self) -> bool {
